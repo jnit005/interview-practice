@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Insmot — AI Interview Practice (MVP)</title>
+  <style>
+    :root{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0}
+    body{padding:24px;background:#f7f8fb;color:#111}
+    .card{background:#fff;border-radius:12px;padding:20px;max-width:820px;margin:16px auto;box-shadow:0 6px 20px rgba(20,20,60,0.06)}
+    h1{margin:0 0 8px;font-size:20px}
+    p.small{color:#555;margin:6px 0 18px}
+    .qbox{margin:10px 0;padding:14px;border:1px dashed #e6e9f0;border-radius:10px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:#0b63ff;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+    button.ghost{background:#fff;color:#0b63ff;border:1px solid #0b63ff}
+    .transcript{white-space:pre-wrap;background:#f1f5ff;padding:12px;border-radius:8px;margin-top:10px}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    td,th{padding:8px;border-bottom:1px solid #f0f2f6;text-align:left}
+    .green{color:green}
+    .red{color:#ff4d4f}
+    .footer{font-size:13px;color:#666;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Insmot — AI Interview Practice (Free MVP)</h1>
+    <p class="small">Answer 5 common interview questions using your voice. This is a client-only MVP — runs in your browser (no signup, no cost).</p>
+
+    <div id="app">
+      <div id="landing">
+        <p>Ready to practice? Click <strong>Start Practice</strong> to begin. Your browser's speech-to-text will convert your voice to text.</p>
+        <div class="controls">
+          <button id="startPracticeBtn">Start Practice</button>
+          <button class="ghost" id="howBtn">How it works</button>
+        </div>
+      </div>
+
+      <div id="practice" style="display:none">
+        <div id="questionArea">
+          <div class="qbox">
+            <strong id="qIndex">Question 1</strong>
+            <div id="questionText">Tell me something about yourself</div>
+            <div style="margin-top:10px" class="controls">
+              <button id="recordBtn">Start Recording</button>
+              <button class="ghost" id="stopBtn" disabled>Stop</button>
+              <button class="ghost" id="nextBtn">Next Question</button>
+            </div>
+            <div id="liveHint" style="margin-top:8px;color:#666;font-size:13px"></div>
+            <div class="transcript" id="transcript">Your transcription will appear here...</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <button id="finishBtn" class="ghost">Finish Practice & Get Feedback</button>
+          <button id="restartBtn" class="ghost">Restart</button>
+        </div>
+      </div>
+
+      <div id="results" style="display:none">
+        <h2>Results</h2>
+        <div id="scoreSummary"></div>
+        <table id="resultsTable"><thead><tr><th>Question</th><th>Score</th><th>Matched Keywords</th></tr></thead><tbody></tbody></table>
+        <div style="margin-top:12px">
+          <button id="downloadBtn">Download Transcript</button>
+          <button id="tryAgainBtn" class="ghost">Try Again</button>
+        </div>
+        <div class="footer">Note: This MVP uses keyword matching in-browser (no data leaves your browser).</div>
+      </div>
+
+      <div id="how" style="display:none">
+        <h3>How it works</h3>
+        <ul>
+          <li>Uses your browser's Web Speech API to convert voice → text.</li>
+          <li>It matches your transcript to pre-defined keywords for each question and gives a score.</li>
+          <li>No server, no accounts: everything runs locally in the browser.</li>
+        </ul>
+        <div style="margin-top:8px"><button id="howBack">Back</button></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ---------- QUESTIONS & KEYWORDS (edit as needed) ----------
+    const QUESTIONS = [
+      {id:'tell_me_about', q: 'Tell me something about yourself', keywords: ['education','graduation','degree','background','experience','skills','projects','passionate']},
+      {id:'strengths', q: 'What are your strengths?', keywords: ['leadership','communication','teamwork','problem','analytical','organized','reliable']},
+      {id:'weaknesses', q: 'What are your weaknesses?', keywords: ['perfectionist','time management','delegation','improve','learning','weakness']},
+      {id:'why_hire', q: 'Why should we hire you?', keywords: ['hardworking','quick learner','adaptable','ambitious','value','contribute','skills','experience']},
+      {id:'five_years', q: 'Where do you see yourself in 5 years?', keywords: ['growth','leadership','senior','manager','expert','learn','impact']}
+    ];
+
+    // State
+    let current = 0;
+    const responses = [];
+
+    // Elements
+    const startPracticeBtn = document.getElementById('startPracticeBtn');
+    const practice = document.getElementById('practice');
+    const landing = document.getElementById('landing');
+    const recordBtn = document.getElementById('recordBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const transcriptEl = document.getElementById('transcript');
+    const qIndex = document.getElementById('qIndex');
+    const questionText = document.getElementById('questionText');
+    const finishBtn = document.getElementById('finishBtn');
+    const results = document.getElementById('results');
+    const resultsTableBody = document.querySelector('#resultsTable tbody');
+    const scoreSummary = document.getElementById('scoreSummary');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const tryAgainBtn = document.getElementById('tryAgainBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const howBtn = document.getElementById('howBtn');
+    const how = document.getElementById('how');
+    const howBack = document.getElementById('howBack');
+    const liveHint = document.getElementById('liveHint');
+
+    // Speech recognition setup
+    let recognition = null;
+    let isRecording = false;
+    let interimTranscript = '';
+
+    function updateQuestion() {
+      qIndex.textContent = `Question ${current+1}`;
+      questionText.textContent = QUESTIONS[current].q;
+      transcriptEl.textContent = 'Your transcription will appear here...';
+      liveHint.textContent = '';
+    }
+
+    function hasSpeechSupport(){
+      return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    startPracticeBtn.addEventListener('click', ()=>{
+      if(!hasSpeechSupport()){
+        alert('Speech Recognition not supported in this browser. Use Chrome/Edge on desktop or Android.');
+        return;
+      }
+      landing.style.display='none';
+      practice.style.display='block';
+      current = 0;
+      responses.length = 0;
+      updateQuestion();
+    });
+
+    howBtn.addEventListener('click', ()=>{landing.style.display='none'; how.style.display='block'});
+    howBack.addEventListener('click', ()=>{how.style.display='none'; landing.style.display='block'});
+
+    // Init recognition
+    function initRecognition(){
+      const Impl = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new Impl();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = ()=>{isRecording = true; recordBtn.textContent='Recording...'; stopBtn.disabled=false; liveHint.textContent='Speak now. Click Stop when done.'}
+      recognition.onend = ()=>{isRecording = false; recordBtn.textContent='Start Recording'; stopBtn.disabled=true; liveHint.textContent='Recording stopped.'}
+
+      recognition.onresult = (e)=>{
+        let full='';
+        for(let i=0;i<e.results.length;i++){
+          full += e.results[i][0].transcript;
+        }
+        transcriptEl.textContent = full;
+      }
+
+      recognition.onerror = (ev)=>{console.error('Speech error',ev); liveHint.textContent='Speech error: '+(ev.error||ev.message)}
+    }
+
+    recordBtn.addEventListener('click', ()=>{
+      if(!recognition) initRecognition();
+      try{
+        recognition.start();
+      }catch(e){console.warn(e);}
+    });
+
+    stopBtn.addEventListener('click', ()=>{
+      if(recognition) recognition.stop();
+      // save interim
+      const t = transcriptEl.textContent.trim();
+      if(t && t!=='Your transcription will appear here...'){
+        responses[current] = t;
+      }
+    });
+
+    nextBtn.addEventListener('click', ()=>{
+      // save current transcript automatically
+      const t = transcriptEl.textContent.trim();
+      responses[current] = (t && t!=='Your transcription will appear here...')? t : '';
+      if(current < QUESTIONS.length-1){
+        current += 1; updateQuestion();
+      } else {
+        alert('You are on the last question. Click Finish to get feedback.');
+      }
+    });
+
+    finishBtn.addEventListener('click', ()=>{
+      // ensure current saved
+      const t = transcriptEl.textContent.trim();
+      responses[current] = (t && t!=='Your transcription will appear here...')? t : responses[current] || '';
+      practice.style.display='none';
+      showResults();
+    });
+
+    restartBtn.addEventListener('click', ()=>{location.reload()});
+
+    function scoreAnswer(ans, keywords){
+      const text = (ans||'').toLowerCase();
+      if(!text) return {score:0, matched:[]};
+      const matched = [];
+      for(const k of keywords){
+        // simple word boundary match
+        const pattern = new RegExp('\\b'+escapeRegExp(k.toLowerCase())+'\\b','i');
+        if(pattern.test(text)) matched.push(k);
+      }
+      const score = Math.round((matched.length / keywords.length) * 100);
+      return {score, matched};
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    }
+
+    function showResults(){
+      results.style.display='block';
+      resultsTableBody.innerHTML='';
+      let total=0;
+      for(let i=0;i<QUESTIONS.length;i++){
+        const ans = responses[i] || '';
+        const res = scoreAnswer(ans, QUESTIONS[i].keywords);
+        total += res.score;
+        const tr = document.createElement('tr');
+        const tdQ = document.createElement('td'); tdQ.textContent = QUESTIONS[i].q;
+        const tdS = document.createElement('td'); tdS.innerHTML = res.score + '%';
+        const tdM = document.createElement('td'); tdM.innerHTML = res.matched.length ? res.matched.join(', ') : '<span class="red">No keywords matched</span>';
+        tr.appendChild(tdQ); tr.appendChild(tdS); tr.appendChild(tdM);
+        resultsTableBody.appendChild(tr);
+      }
+      const avg = Math.round(total / QUESTIONS.length);
+      let msg = '';
+      if(avg >= 70) msg = 'Excellent — your answers include many relevant keywords. Focus on structure and examples.';
+      else if(avg >=40) msg = 'Decent — include more concrete achievements and role-relevant keywords.';
+      else msg = 'Needs work — add specifics: projects, measurable impact, and role-related skills.';
+      scoreSummary.innerHTML = `<strong>Overall score: ${avg}%</strong><p>${msg}</p>`;
+    }
+
+    downloadBtn.addEventListener('click', ()=>{
+      const data = QUESTIONS.map((q,i)=>({question:q.q, answer: responses[i]||''}));
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'insmot_interview_transcript.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    tryAgainBtn.addEventListener('click', ()=>{results.style.display='none'; landing.style.display='block'; responses.length=0});
+
+    // Accessibility / fallback
+    if(!hasSpeechSupport()){
+      document.getElementById('recordBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = true;
+      liveHint.textContent = 'Speech recognition unsupported — you can still type answers (not implemented in MVP). Use Chrome.';
+    }
+
+    // set initial UI text
+    updateQuestion();
+  </script>
+</body>
+</html>
