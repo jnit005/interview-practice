@@ -697,6 +697,23 @@
         transform: rotate(360deg);
       }
     }
+@media (max-width: 480px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .control-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  #nextBtn {
+    width: 100%;
+  }
+}
+
   </style>
 </head>
 
@@ -729,8 +746,8 @@
       </div>
       
       <div class="grid-span-2">
-        <label for="jobDescInput">College</label>
-        <textarea id="jobDescInput" placeholder="Please provide your college name."></textarea>
+        <label for="jobDescInput">Paste Job Description (Optional)</label>
+        <textarea id="jobDescInput" placeholder="Paste the job description here to get more relevant questions..."></textarea>
       </div>
       </div>
 
@@ -745,7 +762,7 @@
     <div class="list-container">
         <p style="font-weight: 600; color: var(--primary-600); margin-bottom: 10px;" id="simulationRulesHeader">Simulation Rules (6 Questions):</p>
         <ul style="list-style-type: disc; padding-left: 20px; color: var(--text-500);">
-            <li>I will ask you behavioral questions relevant to your background.</li>
+            <li>I will ask you behavioral and technical questions relevant to your background.</li>
             <li>Use the <strong>"Start Recording"</strong> button to begin speaking and <strong>"Stop Recording"</strong> when finished.</li>
             <li>Your answer is analyzed immediately based on <strong>keyword inclusion, structure, pacing, and filler words.</strong></li>
             <li>Click <strong>"Next Question"</strong> to proceed.</li>
