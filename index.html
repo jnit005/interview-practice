@@ -875,10 +875,17 @@
     if (synth) {
       synth.onvoiceschanged = () => {
         const voices = synth.getVoices();
-        preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) || 
-                         voices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en')) ||
-                         voices.find(v => v.lang.startsWith('en-US')) ||
-                         voices[0];
+        preferredVoice =
+  voices.find(v => v.name.includes("Google UK English Female")) ||
+  voices.find(v => v.name.includes("Google US English Female")) ||
+  voices.find(v => v.name === "Samantha") ||
+  voices.find(v => v.name === "Karen") ||
+  voices.find(v => v.name === "Moira") ||
+  voices.find(v => v.name === "Tessa") ||
+  voices.find(v => v.name === "Victoria") ||
+  voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")) ||
+  voices.find(v => v.lang.startsWith("en")) ||
+  voices[0];
       };
     }
 
