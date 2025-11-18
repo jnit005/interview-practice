@@ -718,6 +718,12 @@
 #overallFeedbackBox { margin-top:0!important; padding-top:0!important; }
 #scoreSummary { margin-bottom:8px!important; }
 
+
+#resultsPage h2 { margin-bottom:8px!important; }
+#resultsPage p { margin-bottom:4px!important; }
+#scoreSummary { margin:4px 0!important; }
+#overallFeedbackBox { margin:4px 0!important; }
+
 </style>
 </head>
 
@@ -890,6 +896,11 @@
   voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")) ||
   voices.find(v => v.lang.startsWith("en")) ||
   voices[0];
+      // Force Samantha on iOS
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        const samantha = voices.find(v => v.name === "Samantha");
+        if (samantha) preferredVoice = samantha;
+      }
       };
     }
 
@@ -1015,6 +1026,14 @@
       const utterance = new SpeechSynthesisUtterance(text);
       if (preferredVoice) {
         utterance.voice = preferredVoice;
+      } else {
+        setTimeout(() => {
+          const voices = synth.getVoices();
+          const samantha = voices.find(v => v.name === "Samantha");
+          if (samantha) utterance.voice = samantha;
+          synth.speak(utterance);
+        }, 200);
+        return;
       }
       utterance.rate = 0.95; 
       utterance.pitch = 1.0;
