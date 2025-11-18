@@ -714,7 +714,11 @@
   }
 }
 
-  </style>
+  
+#overallFeedbackBox { margin-top:0!important; padding-top:0!important; }
+#scoreSummary { margin-bottom:8px!important; }
+
+</style>
 </head>
 
 <body>
@@ -1051,24 +1055,17 @@
         }
         
         recognition = new R();
-        recognition.interimResults = true;
+        recognition.interimResults = false;
         recognition.lang = 'en-US';
-        recognition.continuous = true; 
+        recognition.continuous = false; 
 
         recognition.currentFinalTranscript = ''; 
 
         recognition.onresult = e => {
-          let interimTranscript = '';
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            const transcriptChunk = e.results[i][0].transcript;
-            if (e.results[i].isFinal) {
-              recognition.currentFinalTranscript += transcriptChunk + ' ';
-            } else {
-              interimTranscript += transcriptChunk;
-            }
-          }
-          transcriptEl.textContent = recognition.currentFinalTranscript + interimTranscript;
-        };
+  const text = e.results[0][0].transcript;
+  recognition.currentFinalTranscript = text;
+  transcriptEl.textContent = text;
+};
 
         recognition.onstart = () => {
           isRecording = true;
