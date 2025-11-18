@@ -714,17 +714,7 @@
   }
 }
 
-  
-#overallFeedbackBox { margin-top:0!important; padding-top:0!important; }
-#scoreSummary { margin-bottom:8px!important; }
-
-
-#resultsPage h2 { margin-bottom:8px!important; }
-#resultsPage p { margin-bottom:4px!important; }
-#scoreSummary { margin:4px 0!important; }
-#overallFeedbackBox { margin:4px 0!important; }
-
-</style>
+  </style>
 </head>
 
 <body>
@@ -896,11 +886,6 @@
   voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")) ||
   voices.find(v => v.lang.startsWith("en")) ||
   voices[0];
-      // Force Samantha on iOS
-      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-        const samantha = voices.find(v => v.name === "Samantha");
-        if (samantha) preferredVoice = samantha;
-      }
       };
     }
 
@@ -1026,14 +1011,6 @@
       const utterance = new SpeechSynthesisUtterance(text);
       if (preferredVoice) {
         utterance.voice = preferredVoice;
-      } else {
-        setTimeout(() => {
-          const voices = synth.getVoices();
-          const samantha = voices.find(v => v.name === "Samantha");
-          if (samantha) utterance.voice = samantha;
-          synth.speak(utterance);
-        }, 200);
-        return;
       }
       utterance.rate = 0.95; 
       utterance.pitch = 1.0;
@@ -1074,17 +1051,24 @@
         }
         
         recognition = new R();
-        recognition.interimResults = false;
+        recognition.interimResults = true;
         recognition.lang = 'en-US';
-        recognition.continuous = false; 
+        recognition.continuous = true; 
 
         recognition.currentFinalTranscript = ''; 
 
         recognition.onresult = e => {
-  const text = e.results[0][0].transcript;
-  recognition.currentFinalTranscript = text;
-  transcriptEl.textContent = text;
-};
+          let interimTranscript = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const transcriptChunk = e.results[i][0].transcript;
+            if (e.results[i].isFinal) {
+              recognition.currentFinalTranscript += transcriptChunk + ' ';
+            } else {
+              interimTranscript += transcriptChunk;
+            }
+          }
+          transcriptEl.textContent = recognition.currentFinalTranscript + interimTranscript;
+        };
 
         recognition.onstart = () => {
           isRecording = true;
