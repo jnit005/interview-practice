@@ -784,42 +784,56 @@
         </div>
     </div>
 
-    <div class="page" id="introPage" style="text-align: center;">
-        <div class="illustration">🎙️</div>
-        <h1><span id="welcomeText">Hello there!</span></h1>
-        <p>Prepare for your interview simulation. The AI Coach will speak the question, and when prompted, you can press **"Start Recording"** to begin your answer. You can pause or stop your recording at any time.</p>
+    <div class="page" id="introPage" style="text-align:center;">
+        <div class="illustration">👋</div>
+        <h2 id="welcomeText">Hello!</h2>
 
         <div class="list-container">
-            <h3>Interview Structure</h3>
-            <ul>
-                <li>You will be asked **8** carefully designed questions.</li>
-                <li>The questions are **tailored** to your selected domain and experience.</li>
-                <li>Answering thoroughly is key! We recommend using the **STAR** method.</li>
-                <li>Your session will conclude with a **detailed performance report** and suggestions.</li>
+            <p style="font-weight: 700; color: var(--primary-600); margin-bottom: 12px;" id="simulationRulesHeader">
+                Instructions:</p>
+            <ul style="list-style-type: disc; padding-left: 20px; color: var(--text-500);">
+                <li>I will ask you 8 behavioral questions tailored to your background.</li>
+                <li>Click <strong>"Start Recording"</strong> to answer.</li>
+                <li>Use the <strong>"Pause"</strong> button if you need to gather your thoughts.</li>
+                <li>Click <strong>"Stop"</strong> when you are fully finished with an answer.</li>
+                <li>Click <strong>"Skip"</strong> when you are not sure about any question.</li>
+                <li>Your detailed analysis will be ready at the end.</li>
             </ul>
+            <p style="margin-top: 20px; font-size:0.9rem;">Please enable your microphone now.</p>
         </div>
 
-        <div class="controls" style="justify-content: flex-end; border-top: none;">
-            <button class="btn accent" id="startPractice">Begin Practice &rarr;</button>
+        <div class="controls" style="justify-content: center; border-top: none; padding-top: 0;">
+            <button class="btn accent" id="goToQuestions">Begin Interview</button>
         </div>
     </div>
 
     <div class="page" id="practicePage">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h2 id="practiceHeader" style="margin:0; font-size:1.2rem;">Interview In Progress</h2>
+            <span style="font-size:0.9rem; color:var(--text-500);">AI Analysis Active</span>
+        </div>
+
         <div id="progressBarContainer">
             <div id="progressBar"></div>
         </div>
 
         <div class="avatar-question-stack">
+
             <div id="avatarContainer">
-                <img id="avatarImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%236366F1' d='M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 3a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0 14.2c-2.5 0-4.71-1.26-6-3.21c.03-1.99 4-3.84 6-3.84s5.97 1.85 6 3.84c-1.29 1.95-3.5 3.21-6 3.21z'/%3E%3C/svg%3E" alt="AI Interview Coach Avatar" />
+                <img id="avatarImage"
+                    src="https://raw.githubusercontent.com/jnit005/interview-practice/main/2222.png" alt="AI Avatar"
+                    onerror="this.src='https://placehold.co/200x200/2563EB/FFFFFF/png?text=AI'" />
             </div>
+
             <div class="qbox">
-                <p id="qIndex">Question 1 / 1</p>
+                <p id="qIndex">Question 1</p>
                 <p id="questionText">Loading...</p>
             </div>
         </div>
 
+
         <div id="timerDisplay">00:00</div>
+
         <div class="transcript" id="transcript">Ready to record.</div>
 
         <div class="controls">
@@ -870,25 +884,51 @@
         let isPaused = false;
         let timerInterval = null;
         let seconds = 0;
-        // We need to store the transcript across multiple recognition sessions (especially on mobile)
-        let accumulatedTranscript = ""; // The final, confirmed text from previous bursts
-        let currentFinalTranscript = ""; // The confirmed text from the current burst
+
+        // We need to store transcript pieces because stopping/pausing recognition clears the buffer
+        let accumulatedTranscript = ""; // Confirmed final text from ALL previous sessions
+        let currentFinalTranscript = ""; // Confirmed final text from the CURRENT active session
+
         let responses = [];
         let breakdown = [];
-        let current = 0; // Current question index
         let user = {};
 
-        // TTS setup
-        const synth = window.speechSynthesis;
-        let preferredVoice = null;
-        let currentUtterance = null;
-        let ttsReady = false;
+        // Elements
+        const processingOverlay = $('processingOverlay');
+        const recordBtn = $('recordBtn');
+        const stopBtn = $('stopBtn');
+        const pauseBtn = $('pauseBtn');
+        const nextBtn = $('nextBtn');
+        const transcriptEl = $('transcript');
+        const timerDisplay = $('timerDisplay');
+        const avatarContainer = $('avatarContainer');
+        const recordingDot = $('recordingDot');
+        const qbox = document.querySelector('.qbox');
 
-        // Question Set - Note: The domain logic pulls from this set
+        // TTS
+        let synth = window.speechSynthesis;
+        let currentUtterance = null;
+        let preferredVoice = null;
+
+        if (synth) {
+            synth.onvoiceschanged = () => {
+                const voices = synth.getVoices();
+                preferredVoice =
+                    voices.find(v => v.name.includes("Google UK English Female")) ||
+                    voices.find(v => v.name.includes("Google US English Female")) ||
+                    voices.find(v => v.name === "Samantha") ||
+                    voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")) ||
+                    voices[0];
+            };
+        }
+
+        // --------------------------------------------
+        // NEW QUESTION STRUCTURES (8 TOTAL: 4 Generic + 4 Custom)
+        // --------------------------------------------
         const GENERIC_QUESTIONS = [
-            { q: "Tell me about yourself.", keywords: ["experience", "role", "skills", "achievement", "goal"] },
-            { q: "What are your greatest strengths and weaknesses?", keywords: ["strength", "weakness", "self-aware", "improvement", "relevance"] },
-            { q: "Why do you want to work here?", keywords: ["research", "mission", "fit", "contribution", "value"] },
+            { q: "Tell me a little about yourself and your background.", keywords: ["experience", "education", "passion", "goals", "summary"] },
+            { q: "What are your greatest strengths, and how do they apply to this role?", keywords: ["problem-solving", "teamwork", "communication", "leadership", "adaptable"] },
+            { q: "What do you consider to be your biggest weaknesses, and what are you doing to improve them?", keywords: ["improvement", "learning", "growth", "managing", "delegating"] },
             { q: "Where do you see yourself in the next 5 years?", keywords: ["growth", "leadership", "contribution", "expertise"] }
         ];
 
@@ -903,14 +943,14 @@
                 "Business": [
                     { q: "Describe a time you used data or research to make a decision for a student club or course project.", keywords: ["data", "analysis", "decision", "impact", "result"] },
                     { q: "Tell me about a time you had to persuade a group or peer to agree with your idea.", keywords: ["persuade", "logic", "communication", "resistance", "agreement"] },
-                    { q: "Describe a significant challenge you faced in a course project and how you overcame it.", keywords: ["challenge", "overcame", "strategy", "persistence", "solution"] },
-                    { q: "Give an example of a time you received constructive criticism. How did you respond?", keywords: ["criticism", "listen", "improve", "feedback", "growth"] }
+                    { q: "Describe a situation where you had too many deadlines at once. How did you prioritize your work?", keywords: ["prioritize", "schedule", "time management", "focus", "result"] },
+                    { q: "Why did you choose your specific domain/major, and how has it prepared you for an industry role?", keywords: ["motivation", "prepared", "skills", "application", "value"] }
                 ],
-                "MBA": [ /* Entry-level MBA/Business Focus */
-                    { q: "Describe a project where you had to manage limited resources (time or budget).", keywords: ["resource", "budget", "optimize", "priority", "outcome"] },
-                    { q: "Tell me about a time you had to lead a diverse team to a common goal.", keywords: ["lead", "diverse", "motivation", "communication", "common goal"] },
-                    { q: "Describe a complex business concept you had to explain simply to someone unfamiliar with it.", keywords: ["complex", "simplify", "clarity", "audience", "communication"] },
-                    { q: "Give an example of a time you anticipated a potential problem and took proactive steps.", keywords: ["anticipate", "proactive", "risk", "mitigate", "action"] }
+                "MBA": [
+                    { q: "Describe a business case study you analyzed during your course. What was your strategic recommendation?", keywords: ["case study", "analysis", "strategic", "recommendation", "justification"] },
+                    { q: "Tell me about a team project where you had to lead a diverse group of peers. What was your biggest challenge?", keywords: ["leadership", "diversity", "challenge", "management", "outcome"] },
+                    { q: "Describe a financial concept you recently mastered and how it can be applied in the business world.", keywords: ["concept", "mastered", "application", "value", "clarity"] },
+                    { q: "Why did you choose the MBA specialization, and what specific industry role are you targeting now?", keywords: ["specialization", "target role", "skills", "fit", "goals"] }
                 ]
             },
             "0-1 years": {
@@ -924,18 +964,18 @@
                     { q: "Describe a time you had to handle an irate customer or difficult stakeholder. What was your strategy?", keywords: ["de-escalate", "listen", "empathy", "solution", "stakeholder"] },
                     { q: "Tell me about a time you identified an inefficiency in a work process and took steps to fix it.", keywords: ["process", "inefficiency", "improve", "initiative", "impact"] },
                     { q: "Give an example of a challenging goal you set for yourself. How did you ensure you met it?", keywords: ["goal", "plan", "metric", "persistence", "achieve"] },
-                    { q: "Describe a situation where you had to adapt your communication style to fit a specific audience.", keywords: ["adapt", "audience", "tailor", "communication", "clarity"] }
+                    { q: "Describe a situation where you had to adapt your communication style to fit a specific audience (e.g., technical vs. executive).", keywords: ["adapt", "audience", "clarity", "format", "effective"] }
                 ],
-                "MBA": [ /* Entry-level MBA/Business Focus */
-                    { q: "Describe a project where you had to manage limited resources (time or budget).", keywords: ["resource", "budget", "optimize", "priority", "outcome"] },
-                    { q: "Tell me about a time you had to lead a diverse team to a common goal.", keywords: ["lead", "diverse", "motivation", "communication", "common goal"] },
-                    { q: "Describe a complex business concept you had to explain simply to someone unfamiliar with it.", keywords: ["complex", "simplify", "clarity", "audience", "communication"] },
-                    { q: "Give an example of a time you anticipated a potential problem and took proactive steps.", keywords: ["anticipate", "proactive", "risk", "mitigate", "action"] }
+                "MBA": [ /* Managerial Focus */
+                    { q: "Describe a situation where you had to quickly adjust a project budget or timeline due to unforeseen circumstances.", keywords: ["adjust", "budget", "timeline", "risk", "communication"] },
+                    { q: "Tell me about a cross-functional task where you had to lead without formal authority.", keywords: ["influence", "leadership", "collaboration", "negotiation", "result"] },
+                    { q: "Give an example of a time you had to use data modeling or financial analysis to justify a key business decision.", keywords: ["data model", "financial", "justification", "decision", "impact"] },
+                    { q: "What is your philosophy on mentorship and developing new team members?", keywords: ["mentorship", "develop", "feedback", "growth", "philosophy"] }
                 ]
             },
             "1-5 years": {
                 "Tech": [
-                    { q: "Describe a disagreement you had with a technical lead or architect on a design choice. How was it resolved?", keywords: ["design choice", "disagreement", "justification", "compromise", "resolution"] },
+                    { q: "Describe a project you were instrumental in leading from conception to deployment. What were the key challenges?", keywords: ["ownership", "leadership", "deployment", "challenges", "stakeholder"] },
                     { q: "Tell me about a time you had to coach a junior team member on a difficult skill or process.", keywords: ["coach", "mentor", "patience", "improvement", "knowledge transfer"] },
                     { q: "Give an example of a technical debt issue you encountered. How did you convince management to prioritize fixing it?", keywords: ["technical debt", "prioritize", "justification", "risk", "mitigation"] },
                     { q: "Describe a situation where you had to quickly switch priorities on a project. How did you manage the change and communicate with the team?", keywords: ["switch", "communicate", "reprioritize", "adapt", "stakeholder"] }
@@ -948,14 +988,14 @@
                 ],
                 "MBA": [ /* Senior Managerial / MBA Focus */
                     { q: "Describe a significant strategy you developed that increased profitability or market share for a business unit.", keywords: ["strategy", "profitability", "market share", "analytics", "execution"] },
-                    { q: "Tell me about a time you had to lead a major cross-functional initiative.", keywords: ["cross-functional", "leadership", "alignment", "stakeholder", "outcome"] },
-                    { q: "Give an example of a time you had to pivot a business plan based on new market data.", keywords: ["pivot", "market data", "adapt", "justification", "risk"] },
-                    { q: "Describe how you prioritize conflicting initiatives across different departments.", keywords: ["prioritize", "roi", "alignment", "communication", "framework"] }
+                    { q: "Give an example of a cross-functional project where you successfully managed conflicting priorities among different departments.", keywords: ["cross-functional", "stakeholder management", "priorities", "negotiation", "alignment"] },
+                    { q: "Tell me about a time you had to adjust your strategic plan rapidly due to an unexpected market change or competitor move.", keywords: ["adaptability", "market analysis", "contingency", "decision-making", "communication"] },
+                    { q: "What is your approach to motivating and leading high-performing teams, especially during periods of high pressure?", keywords: ["leadership", "motivation", "team development", "pressure", "accountability"] }
                 ]
             },
             "5+ years": {
                 "Tech": [
-                    { q: "Describe a major system outage or crisis you managed. What was your role and the immediate actions taken?", keywords: ["crisis", "mitigation", "role", "communication", "post-mortem"] },
+                    { q: "Describe a time you had to mediate a technical disagreement between two senior team members. What was your approach?", keywords: ["mediate", "consensus", "compromise", "technical rationale", "team cohesion"] },
                     { q: "Tell me about a strategy you implemented to improve the overall quality or scalability of the team's codebase.", keywords: ["strategy", "architecture", "scalability", "quality", "long-term impact"] },
                     { q: "Give an example of a critical project that failed or did not meet expectations. What was your role, and what did you learn?", keywords: ["failure", "reflection", "lessons learned", "accountability", "recovery"] },
                     { q: "Describe your leadership style and how you use it to motivate and develop your team members.", keywords: ["leadership", "motivate", "develop", "mentoring", "empower"] }
@@ -968,36 +1008,22 @@
                 ],
                 "MBA": [ /* Same as 1-5 years MBA, focused on leadership */
                     { q: "Describe a significant strategy you developed that increased profitability or market share for a business unit.", keywords: ["strategy", "profitability", "market share", "analytics", "execution"] },
-                    { q: "Tell me about a time you had to lead a major cross-functional initiative.", keywords: ["cross-functional", "leadership", "alignment", "stakeholder", "outcome"] },
-                    { q: "Give an example of a time you had to pivot a business plan based on new market data.", keywords: ["pivot", "market data", "adapt", "justification", "risk"] },
-                    { q: "Describe how you prioritize conflicting initiatives across different departments.", keywords: ["prioritize", "roi", "alignment", "communication", "framework"] }
+                    { q: "Give an example of a cross-functional project where you successfully managed conflicting priorities among different departments.", keywords: ["cross-functional", "stakeholder management", "priorities", "negotiation", "alignment"] },
+                    { q: "Tell me about a time you had to adjust your strategic plan rapidly due to an unexpected market change or competitor move.", keywords: ["adaptability", "market analysis", "contingency", "decision-making", "communication"] },
+                    { q: "What is your approach to motivating and leading high-performing teams, especially during periods of high pressure?", keywords: ["leadership", "motivation", "team development", "pressure", "accountability"] }
                 ]
             }
         };
 
 
-        function getPreferredVoice() {
-            if (synth.getVoices().length > 0) {
-                // Try to find a high-quality female or male voice (browser dependent)
-                const voices = synth.getVoices();
-                preferredVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google') && (v.name.includes('Female') || v.name.includes('Male'))) ||
-                    voices.find(v => v.lang.startsWith('en')); // Fallback to any English voice
-                ttsReady = true;
-            } else {
-                // Voices might load asynchronously
-                synth.onvoiceschanged = () => {
-                    getPreferredVoice();
-                };
-            }
-        }
-        getPreferredVoice();
+        let QUESTIONS = [...GENERIC_QUESTIONS]; // Initialize with generic questions
+        let current = 0;
+        let currentPage = 'formPage';
 
         // Page Navigation
-        let currentPage = 'formPage';
         function showPage(pageId) {
-            const oldPage = $(currentPage);
             const newPage = $(pageId);
-            if (!newPage) return;
+            const oldPage = $(currentPage);
 
             // If we are showing the current page, do nothing (used for initial load fix)
             if (pageId === currentPage && newPage.classList.contains('visible')) return;
@@ -1019,7 +1045,7 @@
             }
         }
 
-        // LocalStorage function
+        // LocalStorage
         function saveUserToLocal() {
             localStorage.setItem('insmotUser', JSON.stringify(user));
         }
@@ -1032,6 +1058,7 @@
                 $('nameInput').value = user.name || '';
                 $('emailInput').value = user.email || '';
                 $('jobDescInput').value = user.jobDesc || '';
+
                 // NEW Fields: Check if elements exist before setting value
                 if ($('experienceInput')) $('experienceInput').value = user.experience || '';
                 if ($('domainInput')) $('domainInput').value = user.domain || '';
@@ -1057,16 +1084,14 @@
             utterance.onend = () => {
                 avatarContainer.classList.remove('speaking');
                 currentUtterance = null;
-                // Enable the record button and next button after speaking is complete
-                recordBtn.disabled = false;
+                // ADDED: Enable skip button after question is asked
                 nextBtn.disabled = false;
             };
 
-            utterance.onerror = (event) => {
-                console.error("SpeechSynthesisUtterance.onerror", event);
+            utterance.onerror = () => {
                 avatarContainer.classList.remove('speaking');
-                // Ensure buttons are still enabled even if speech fails
-                recordBtn.disabled = false;
+                currentUtterance = null;
+                // ADDED: Enable skip button even if there's an error in speaking
                 nextBtn.disabled = false;
             };
 
@@ -1074,195 +1099,150 @@
             synth.speak(utterance);
         }
 
-        // Timer Logic
+        // Recognition Logic
+        function initRec() {
+            try {
+                const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!R) {
+                    transcriptEl.textContent = 'Speech Recognition not supported in this browser.';
+                    recordBtn.disabled = true;
+                    return;
+                }
+
+                recognition = new R();
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                recognition.continuous = true;
+
+                // --------------------------------------------
+                // FIX START: Correctly accumulate transcript within the session
+                // --------------------------------------------
+                recognition.onresult = e => {
+                    let interimTranscript = '';
+                    let finalChunkFromEvent = ''; // Temp variable for new final speech in this event
+
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        const transcriptChunk = e.results[i][0].transcript;
+                        if (e.results[i].isFinal) {
+                            finalChunkFromEvent += transcriptChunk + ' ';
+                        } else {
+                            interimTranscript += transcriptChunk;
+                        }
+                    }
+
+                    // Append the newly confirmed final text to the session's total
+                    if (finalChunkFromEvent) {
+                        currentFinalTranscript += finalChunkFromEvent;
+                    }
+
+                    // Display accumulated (from previous sessions) + current confirmed (this session) + current interim (unconfirmed)
+                    transcriptEl.textContent = accumulatedTranscript + currentFinalTranscript + interimTranscript;
+                };
+                // --------------------------------------------
+                // FIX END: Correctly accumulate transcript within the session
+                // --------------------------------------------
+
+                recognition.onstart = () => {
+                    // If we are resuming, don't clear text
+                    if (!accumulatedTranscript) {
+                        transcriptEl.textContent = 'Listening...';
+                    }
+
+                    isRecording = true;
+                    isPaused = false;
+
+                    // UI Updates
+                    recordBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    pauseBtn.disabled = false;
+                    pauseBtn.textContent = "Pause"; // Ensure correct label
+                    nextBtn.disabled = true; // Disable Skip/Next button while recording
+
+                    transcriptEl.classList.add('is-recording');
+                    avatarContainer.classList.add('listening');
+                    avatarContainer.classList.remove('speaking');
+                    avatarContainer.classList.remove('paused');
+                    recordingDot.classList.add('is-recording');
+
+                    timerDisplay.style.color = 'var(--text-900)';
+                    startTimer();
+                };
+
+                // --------------------------------------------
+                // Robust multi-session recording logic (remains from previous fix)
+                // --------------------------------------------
+                recognition.onend = () => {
+                    // Step 1: Save the confirmed transcript chunk from the just-ended recognition session
+                    if (currentFinalTranscript) {
+                        // Add a space to separate the phrases from different sessions.
+                        accumulatedTranscript += currentFinalTranscript + ' ';
+                        currentFinalTranscript = ""; // Clear for the next burst
+                    }
+
+                    if (isPaused) {
+                        // If intentionally paused, stop here.
+                        transcriptEl.textContent = accumulatedTranscript.trim() || 'Paused.';
+                        return;
+                    }
+
+                    if (isRecording) {
+                        // UNEXPECTED END (mic timeout/server drop), but we are still logically recording. RESTART.
+                        try {
+                            // Update the UI to show the combined transcript while listening is about to resume
+                            transcriptEl.textContent = accumulatedTranscript.trim() + '... Still listening.';
+                            recognition.start(); // Restart listening
+                        } catch (e) {
+                            console.error("Recognition auto-restart failed:", e);
+                            // If we can't restart, we have to conclude the recording session gracefully.
+                            isRecording = false; // Prevent endless loop
+                            stopRecordingLogic();
+                        }
+                    } else {
+                        // If isRecording is false, it means the user hit STOP or an error occurred.
+                        // We ensure the final accumulated text is shown.
+                        transcriptEl.textContent = accumulatedTranscript.trim() || 'No answer recorded.';
+                    }
+                };
+                // --------------------------------------------
+
+
+                recognition.onerror = (e) => {
+                    if (e.error !== 'aborted') {
+                        console.error("Recognition Error:", e);
+                        transcriptEl.textContent = `Error: ${e.error}`;
+                    }
+                    avatarContainer.classList.remove('listening');
+                    recordingDot.classList.remove('is-recording');
+                    // Ensure controls are re-enabled on error
+                    recordBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    nextBtn.disabled = false;
+                };
+
+            } catch (err) { console.error(err); }
+        }
+
+        function updateTimer() {
+            seconds++;
+            const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const remSeconds = String(seconds % 60).padStart(2, '0');
+            timerDisplay.textContent = `${minutes}:${remSeconds}`;
+        }
+
         function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                seconds++;
-                const min = String(Math.floor(seconds / 60)).padStart(2, '0');
-                const sec = String(seconds % 60).padStart(2, '0');
-                $('timerDisplay').textContent = `${min}:${sec}`;
-            }, 1000);
+            stopTimer();
+            timerInterval = setInterval(updateTimer, 1000);
         }
 
         function stopTimer() {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
+            clearInterval(timerInterval);
         }
 
         function resetTimer() {
             stopTimer();
             seconds = 0;
-            $('timerDisplay').textContent = `00:00`;
-        }
-
-
-        // Speech Recognition Setup
-        function setupRecognition() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert("Speech Recognition is not supported in your browser. Please use Chrome or a compatible browser for this feature.");
-                recordBtn.disabled = true;
-                return;
-            }
-
-            recognition = new webkitSpeechRecognition();
-            recognition.continuous = true; // Important for long sentences / mobile restart logic
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            // --------------------------------------------
-            // FIX START: Correctly accumulate transcript within the session (Fixes mobile duplication)
-            // --------------------------------------------
-            recognition.onresult = (event) => {
-                let interimTranscript = "";
-                let finalResultOfBurst = ""; 
-
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalResultOfBurst = transcript; // Only track the final part
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-
-                if (finalResultOfBurst) {
-                    currentFinalTranscript = finalResultOfBurst;
-                }
-                
-                // Display: Accumulated (previous bursts) + Current Final (state) + Current Interim (new text)
-                // The replace is for cleanup of any accidental double spaces at the joins.
-                transcriptEl.textContent = (accumulatedTranscript + ' ' + currentFinalTranscript + ' ' + interimTranscript).replace(/\s\s+/g, ' ').trim();
-            };
-            // --------------------------------------------
-            // FIX END: Correctly accumulate transcript within the session
-            // --------------------------------------------
-
-
-            recognition.onstart = () => {
-                // If we are resuming, don't clear text
-                if (!accumulatedTranscript) {
-                    transcriptEl.textContent = 'Listening...';
-                }
-                isRecording = true;
-                isPaused = false;
-
-                // UI Updates
-                recordBtn.disabled = true;
-                stopBtn.disabled = false;
-                pauseBtn.disabled = false;
-                pauseBtn.textContent = "Pause"; // Ensure correct label
-                nextBtn.disabled = true; // Disable Skip/Next button while recording
-                transcriptEl.classList.add('is-recording');
-                avatarContainer.classList.add('listening');
-                avatarContainer.classList.remove('speaking');
-                avatarContainer.classList.remove('paused');
-                recordingDot.classList.add('is-recording');
-                timerDisplay.style.color = 'var(--text-900)';
-                startTimer();
-            };
-
-            // --------------------------------------------
-            // Robust multi-session recording logic (remains from previous fix)
-            // --------------------------------------------
-            recognition.onend = () => {
-                // Step 1: Save the confirmed transcript chunk from the just-ended recognition session
-                if (currentFinalTranscript) {
-                    // Add a space to separate the phrases from different sessions.
-                    accumulatedTranscript += currentFinalTranscript + ' ';
-                    currentFinalTranscript = ""; // Clear for the next burst
-                }
-
-                if (isPaused) {
-                    // If intentionally paused, stop here.
-                    transcriptEl.textContent = accumulatedTranscript.trim() || 'Paused.';
-                    return;
-                }
-
-                if (isRecording) {
-                    // UNEXPECTED END (mic timeout/server drop), but we are still logically recording. RESTART.
-                    try {
-                        // MODIFIED: Only update the UI to show the combined transcript. NO "Still listening." text.
-                        transcriptEl.textContent = accumulatedTranscript.trim() || 'Listening...';
-                        recognition.start(); // Restart listening
-                    } catch (e) {
-                        console.error("Recognition auto-restart failed:", e);
-                    }
-                } else {
-                    // Intentionally stopped (stop button pressed)
-                    // Finalize transcript
-                    const finalAnswer = accumulatedTranscript.trim() || 'No answer recorded.';
-
-                    // Store the response for scoring
-                    responses[current] = {
-                        answer: finalAnswer,
-                        time: seconds,
-                    };
-
-                    // UI Updates
-                    stopTimer();
-                    recordBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    pauseBtn.disabled = true;
-                    nextBtn.disabled = false; // Enable Skip/Next button (now functions as Next)
-                    nextBtn.textContent = "Next Question &rarr;"; // Change label
-                    transcriptEl.classList.remove('is-recording');
-                    avatarContainer.classList.remove('listening');
-                    recordingDot.classList.remove('is-recording');
-                    timerDisplay.style.color = 'var(--text-500)';
-                    transcriptEl.textContent = finalAnswer;
-
-                    // Immediately calculate WPM and Filler Words for the current response
-                    const result = calculateWPM(finalAnswer, seconds);
-                    responses[current].wpm = result.wpm;
-                    responses[current].fillerWords = countFillerWords(finalAnswer);
-
-                    // Auto-advance if not the last question and answer is non-empty
-                    if (current < QUESTIONS.length - 1 && finalAnswer !== 'No answer recorded.') {
-                        // Show overlay for a short period before auto-advancing
-                        processingOverlay.style.display = 'flex';
-                        setTimeout(() => {
-                            processingOverlay.style.display = 'none';
-                            current++;
-                            updateQ();
-                        }, 500);
-                    } else if (current === QUESTIONS.length - 1) {
-                        // Finish the test if it was the last question
-                        processingOverlay.style.display = 'flex';
-                        setTimeout(() => {
-                            processingOverlay.style.display = 'none';
-                            finishTest();
-                        }, 500);
-                    }
-                }
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Recognition error:", event.error);
-                // Handle recognition errors gracefully
-                if (isRecording) {
-                    isRecording = false; // Reset state
-                    stopTimer();
-                    // Fallback UI reset
-                    recordBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    pauseBtn.disabled = true;
-                    nextBtn.disabled = false;
-                    transcriptEl.classList.remove('is-recording');
-                    avatarContainer.classList.remove('listening');
-                    recordingDot.classList.remove('is-recording');
-                    timerDisplay.style.color = 'var(--text-500)';
-
-                    // If it was an auto-restart error, the text might already be stored, so don't clear.
-                    // If no text was recorded, inform the user.
-                    if (accumulatedTranscript.trim() === '') {
-                        transcriptEl.textContent = 'Recording stopped due to an error. Please try again.';
-                    }
-                    currentFinalTranscript = "";
-                }
-            };
+            timerDisplay.textContent = `00:00`;
         }
 
         // --- Page 1 ---
@@ -1275,25 +1255,17 @@
                 jobDesc: $('jobDescInput').value.trim(),
             };
 
-            if (!user.name) {
-                alert('Please enter your name.');
-                return;
-            }
-            if (!user.experience) {
-                alert('Please select your experience.');
-                return;
-            }
-            // Simple validation
-            if (!user.domain) {
-                alert('Please select your domain.');
-                return;
-            }
-            // Simple validation
+            if (!user.name) { alert('Please enter your name.'); return; }
+            if (!user.experience) { alert('Please select your experience.'); return; } // Simple validation
+            if (!user.domain) { alert('Please select your domain.'); return; } // Simple validation
 
-            saveUserToLocal(); // Call the modified function
+            saveUserToLocal();
+            // Call the modified function
             buildQuestionSet();
+
             $('welcomeText').textContent = `Hello, ${user.name}!`;
-            speak(`Hello ${user.name}, welcome to Insmot AI interview. You will be taken through 8 carefully designed questions that reflect real interview scenarios. Each question tests your clarity, confidence, and communication skills. All the best, let's begin.`);
+            speak(`Hello ${user.name}, welcome to Insmot AI interview. You will be taken through 8 carefully designed questions that reflect real 
+            interview scenarios. Each question tests your clarity, confidence, and communication skills. All the best, let's begin.`);
             showPage('introPage');
         };
 
@@ -1312,75 +1284,64 @@
             // 2. Determine the domain group (Tech, Business, or MBA)
             let domainGroup = "";
             const techDomains = ["B.Tech/B.E", "BCA", "M.Tech"];
-            const businessDomains = ["B.Com", "BBA", "Bsc", "MBA"]; // MBA is listed here but has its own special section
-            if (techDomains.includes(userDomain)) {
+            const businessDomains = ["B.Com", "BBA", "Bsc"];
+
+            if (userDomain === "MBA") {
+                domainGroup = "MBA";
+            } else if (techDomains.includes(userDomain)) {
                 domainGroup = "Tech";
             } else if (businessDomains.includes(userDomain)) {
-                if (userDomain === "MBA") {
-                    domainGroup = "MBA";
-                } else {
-                    domainGroup = "Business";
-                }
-            } else {
-                // Fallback for safety
                 domainGroup = "Business";
+            } else {
+                domainGroup = "Business"; // Default to general business questions
             }
 
-
-            // 3. Select 4 domain-specific questions (or less if the set is smaller)
-            const behavioralSet = BEHAVIORAL_QUESTIONS[expKey][domainGroup];
-            if (behavioralSet && behavioralSet.length > 0) {
-                // Shuffle and pick the first 4 (or all if < 4)
-                const shuffled = [...behavioralSet].sort(() => 0.5 - Math.random());
-                const selectedBehavioral = shuffled.slice(0, 4);
-                QUESTIONS.push(...selectedBehavioral);
+            let customQuestions = [];
+            // 3. Retrieve the custom questions
+            if (BEHAVIORAL_QUESTIONS[expKey] && BEHAVIORAL_QUESTIONS[expKey][domainGroup]) {
+                customQuestions = BEHAVIORAL_QUESTIONS[expKey][domainGroup];
+            } else {
+                // Fallback to generic set for safety if a combination is missed
+                customQuestions = GENERIC_QUESTIONS.slice(0, 4);
             }
 
-            // Ensure we have exactly 8 questions, padding with generic if necessary
-            while (QUESTIONS.length < 8) {
-                // Simple padding logic, avoids infinite loop if logic above fails
-                QUESTIONS.push(GENERIC_QUESTIONS[QUESTIONS.length % GENERIC_QUESTIONS.length]);
-            }
+            QUESTIONS.push(...customQuestions.slice(0, 4)); // Add 4 Custom Questions
+
+            // Update the rules header
+            $('simulationRulesHeader').textContent = `Instructions:`;
         }
+        // --------------------------------------------
+        // END MODIFIED QUESTION LOGIC
+        // --------------------------------------------
 
 
         // --- Page 2 ---
-        $('startPractice').onclick = () => {
-            if (!recognition) {
-                setupRecognition(); // Initialize recognition only when starting the practice
-            }
+        $('goToQuestions').onclick = () => {
             showPage('practicePage');
+            initRec();
             updateQ();
         };
 
-        const transcriptEl = $('transcript');
-        const recordBtn = $('recordBtn');
-        const stopBtn = $('stopBtn');
-        const pauseBtn = $('pauseBtn');
-        const nextBtn = $('nextBtn');
-        const recordingDot = $('recordingDot');
-        const avatarContainer = $('avatarContainer');
-        const timerDisplay = $('timerDisplay');
-        const processingOverlay = $('processingOverlay');
-
-
         function updateQ() {
-            // Reset for the new question
-            stopTimer();
-            resetTimer(); // Also resets the display
-            currentFinalTranscript = "";
+            if (currentUtterance) synth.cancel(); // Stop Avatar if still speaking
+            if (recognition) recognition.abort();
+
+            // Reset State
             accumulatedTranscript = "";
-            isRecording = false;
-            isPaused = false;
-            recordBtn.disabled = false;
+            currentFinalTranscript = "";
+            resetTimer();
+
             stopBtn.disabled = true;
             pauseBtn.disabled = true;
+            recordBtn.disabled = false;
+
+            // MODIFIED: Ensure nextBtn is disabled while question is being spoken
             nextBtn.disabled = true;
             nextBtn.textContent = "Skip"; // Reset label to Skip
+
             avatarContainer.classList.remove('speaking', 'listening', 'paused');
 
             $('qIndex').textContent = `Question ${current + 1} / ${QUESTIONS.length}`;
-
             // Use a temporary span to trigger the fadeIn animation on the question text
             const questionTextEl = $('questionText');
             questionTextEl.textContent = QUESTIONS[current].q;
@@ -1388,7 +1349,9 @@
             void questionTextEl.offsetHeight; // Trigger reflow
             questionTextEl.style.animation = 'fadeIn 0.8s ease-out'; // Reapply animation
 
+
             transcriptEl.textContent = 'Press "Start Recording" to begin.';
+
             speak(QUESTIONS[current].q); // nextBtn is enabled inside speak.onend
 
             const progress = ((current) / QUESTIONS.length) * 100;
@@ -1396,6 +1359,7 @@
         }
 
         // --- Control Logic ---
+
         function startRecording() {
             if (!recognition) return;
             try {
@@ -1409,9 +1373,7 @@
                 // RESUME
                 isPaused = false;
                 // recognition.start() will trigger onstart, which resets UI to listening
-                try {
-                    recognition.start();
-                } catch (e) { }
+                try { recognition.start(); } catch (e) { }
             } else {
                 // PAUSE
                 isPaused = true;
@@ -1430,14 +1392,48 @@
 
         function stopRecordingLogic() {
             isRecording = false;
-            // The actual state update happens in recognition.onend
+            isPaused = false;
+            stopTimer();
+
+            // When user hits STOP, the recognition.abort() forces onend to fire.
+            // onend handles combining currentFinalTranscript into accumulatedTranscript.
+            // We just need to take the final accumulated result.
+            const fullText = accumulatedTranscript.trim();
+            const finalAnswer = fullText || transcriptEl.textContent.replace('Listening...', '').trim() || 'No answer recorded.';
+
+            // Logic for score
+            const answerTime = seconds > 0 ? seconds : 1;
+            const { wpm } = calculateWPM(finalAnswer, answerTime);
+            const fillerWords = countFillerWords(finalAnswer);
+
+            responses[current] = {
+                answer: finalAnswer,
+                time: answerTime,
+                wpm: wpm,
+                fillerWords: fillerWords
+            };
+
+            transcriptEl.textContent = finalAnswer;
+
+            // UI Reset
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = "Pause";
+            nextBtn.disabled = false;
+            nextBtn.textContent = "Next Question →"; // MODIFIED: Change label to Next
+
+            transcriptEl.classList.remove('is-recording');
+            avatarContainer.classList.remove('listening', 'paused');
+            recordingDot.classList.remove('is-recording');
+            timerDisplay.style.color = 'var(--text-500)';
         }
 
-
-        // Event Listeners for Controls
-        $('recordBtn').onclick = startRecording;
-        $('pauseBtn').onclick = togglePause;
-        $('stopBtn').onclick = () => {
+        recordBtn.onclick = startRecording;
+        pauseBtn.onclick = togglePause;
+        stopBtn.onclick = () => {
+            isPaused = false; // Ensure we don't treat this as a pause
+            isRecording = false; // Set to false immediately so onend skips restart logic
             if (recognition) recognition.abort(); // Force stop. This triggers onend.
             stopRecordingLogic();
         };
@@ -1469,10 +1465,7 @@
 
         // --- Scoring ---
         const FILLER_WORDS = /\b(um|uh|ah|like|you know|so|actually|basically|literally|right)\b/gi;
-
-        function countFillerWords(text) {
-            return (text.match(FILLER_WORDS) || []).length;
-        }
+        function countFillerWords(text) { return (text.match(FILLER_WORDS) || []).length; }
 
         function calculateWPM(text, time) {
             if (!text || time === 0) return { wpm: 0 };
@@ -1484,29 +1477,48 @@
         const SYNONYM_CLUSTERS = {
             // Structural/Action keywords (A/R in STAR)
             "solution": ["solution", "result", "outcome", "achieved", "implemented", "resolved"],
-            "impact": ["impact", "result", "outcome", "achieve", "success", "profitability", "metric", "quantify"],
-            "strategy": ["strategy", "approach", "method", "plan", "framework"],
-            "leadership": ["leadership", "led", "managed", "guided", "oversaw"],
-            // Domain/Concept keywords (B.Tech, MBA, etc.)
-            "project": ["project", "assignment", "initiative", "task"],
-            "challenge": ["challenge", "problem", "obstacle", "issue", "difficulty"],
-            "communication": ["communication", "articulate", "convey", "explained", "presented"],
-            "process": ["process", "workflow", "procedure", "system"]
+            "impact": ["impact", "result", "outcome", "metric", "quantify", "improved"],
+            "strategy": ["strategy", "approach", "plan", "method", "process", "tactic"],
+            "communication": ["communication", "discuss", "explain", "listen", "convey"],
+            "leadership": ["leadership", "guided", "managed", "oversaw", "lead", "delegated"],
+            "teamwork": ["teamwork", "collaborate", "shared", "partnered", "together"],
+
+            // Context/Challenge keywords (S/T in STAR)
+            "challenge": ["challenge", "obstacle", "difficulty", "problem", "issue", "hinderance"],
+            "mistake": ["mistake", "error", "failed", "learned", "correction", "improved"],
+            "prioritize": ["prioritize", "deadline", "urgent", "focused", "schedule", "time management"],
+            "adapt": ["adapt", "flexible", "change", "adjust", "pivot", "unforeseen"],
+
+            // Self-Reflection/Growth
+            "growth": ["growth", "learning", "development", "improve", "skill", "progress"],
+            "education": ["education", "study", "major", "degree", "coursework", "background"],
+            
+            // Common keywords that benefit from synonym matching
+            "prepared": ["prepared", "ready", "equipped", "trained"],
+            "motivation": ["motivation", "driven", "passion", "inspiration"],
+            "process": ["process", "system", "workflow", "methodology"],
+            "budget": ["budget", "cost", "financial", "spending"]
         };
 
+        // NEW: Helper function to get word count
+        function getWordCount(text) {
+            if (!text) return 0;
+            return text.trim().split(/\s+/).length;
+        }
 
-        function scoreAnswer(answer, requiredKeys) {
-            if (answer.trim() === 'No answer recorded.' || answer.trim() === 'Skipped by user.') {
-                return { score: 0, matched: [], wordCount: 0, elaborationPenalty: false };
-            }
-
-            const lower = answer.toLowerCase();
-            const words = answer.split(/\s+/).filter(w => w.length > 0);
-            const wordCount = words.length;
-
+        /**
+         * Enhanced Scoring Function
+         * 1. Semantic Cluster Matching (Accounts for synonyms)
+         * 2. Minimum Elaboration Threshold (Capped score for short answers)
+         * 3. Structural Validation (Bonus/Penalty for Action/Result)
+         */
+        function score(ans, requiredKeys) {
+            if (!ans || ans === "Skipped by user.") return { score: 0, matched: [], elaborationPenalty: false };
+            const lower = ans.toLowerCase();
+            const wordCount = getWordCount(ans);
             let matchedKeys = [];
             let matchedClusters = 0;
-
+            
             // Define core structural markers (for structural validation)
             const ACTION_KEYWORDS = ["solution", "strategy", "implemented", "leadership", "coach", "develop", "adjust", "execution"];
             const RESULT_KEYWORDS = ["impact", "result", "outcome", "achieve", "success", "profitability", "metric", "quantify"];
@@ -1516,7 +1528,7 @@
             requiredKeys.forEach(requiredKey => {
                 const lowerKey = requiredKey.toLowerCase();
                 let isHit = false;
-
+                
                 // Use a defined synonym cluster or the exact keyword itself
                 const cluster = SYNONYM_CLUSTERS[lowerKey] || [lowerKey];
 
@@ -1538,7 +1550,8 @@
 
             // 2. Minimum Elaboration Threshold
             const MIN_WORDS = 50;
-            const ELABORATION_CAP_SCORE = 30;
+            const ELABORATION_CAP_SCORE = 30; 
+
             if (wordCount < MIN_WORDS) {
                 // Cap the score if the answer is too brief, even if keywords were hit
                 semanticScore = Math.min(semanticScore, ELABORATION_CAP_SCORE);
@@ -1550,34 +1563,46 @@
             let hasAction = requiredKeys.some(key => ACTION_KEYWORDS.includes(key.toLowerCase()) && matchedKeys.includes(key));
             let hasResult = requiredKeys.some(key => RESULT_KEYWORDS.includes(key.toLowerCase()) && matchedKeys.includes(key));
 
-            // Apply a small bonus for hitting both key structural components
-            if (hasAction && hasResult && semanticScore > 0) {
-                semanticScore = Math.min(100, semanticScore * 1.05); // 5% bonus up to 100
+            let structuralBonus = 0;
+            if (requiredKeys.length > 3) { // Only apply structural check on behavioral questions
+                if (hasAction && hasResult) {
+                    structuralBonus = 5; // Bonus for covering both key elements
+                } else if (!hasAction && !hasResult) {
+                    structuralBonus = -10; // Penalty for missing both key elements
+                }
             }
 
+            let finalScore = Math.max(0, semanticScore + structuralBonus);
 
+            // Final score must be between 0 and 100
+            finalScore = Math.min(100, finalScore);
+            
             return {
-                score: Math.round(semanticScore),
+                score: Math.round(finalScore),
                 matched: matchedKeys,
-                wordCount: wordCount,
                 elaborationPenalty: elaborationPenalty
             };
         }
 
-        // --- Feedback Generator ---
+
+        // --- Suggestions Engine ---
+        // NEW: Function to generate targeted advice based on performance
         function getSuggestion(item) {
-            const { answer, time, wpm, fillerWords, score, hit, all, elaborationPenalty } = item;
-            let suggestion = [];
-
-            // Global Thresholds (Adjust based on general interview standards)
-            const wpmThreshold = 180;
-            const fillerWordThreshold = 3;
-
-            // 1. Content/Structure Check
-            if (elaborationPenalty) {
-                suggestion.push(`Your answer was too brief. Aim for at least 50 words to fully elaborate on the **Situation, Task, Action, and Result (STAR method)**.`);
+            if (item.answer === "Skipped by user.") {
+                return "You must attempt to answer every question. Skipping prevents the interviewer from evaluating your core competencies.";
             }
 
+            const wpmThreshold = 150;
+            const fillerWordThreshold = 3;
+            let suggestion = [];
+
+            // 1. Structural/Keyword Check
+            if (item.score < 40) {
+                suggestion.push(`Your answer lacks key content. Focus on the core keywords like **${item.all.slice(0, 3).join(', ')}** to provide sufficient detail.`);
+            } else if (item.elaborationPenalty) {
+                 suggestion.push(`Your answer was too brief. Aim for at least 50 words to fully elaborate on the Situation, Task, Action, and Result (STAR method).`);
+            }
+            
             const hasAction = item.hit.some(key => ["solution", "strategy", "implemented", "leadership"].includes(key.toLowerCase()));
             const hasResult = item.hit.some(key => ["impact", "result", "outcome", "metric", "quantify"].includes(key.toLowerCase()));
 
@@ -1597,162 +1622,136 @@
             } else if (item.wpm < 100 && item.time > 15) {
                 suggestion.push(`Your speaking pace is quite slow. Aim for a pace between 130-160 WPM to maintain interviewer engagement.`);
             }
+
             if (item.fillerWords > fillerWordThreshold) {
                 suggestion.push(`You used ${item.fillerWords} filler words. Practice pausing instead of saying 'um' or 'like' to sound more confident and prepared.`);
             }
 
             // 3. Domain/Experience Check (for added context)
-            if (user.domain.includes("Tech") && !item.hit.includes("architecture") && item.score > 50 && user.experience === "5+ years") {
-                suggestion.push("For senior technical roles, ensure you mention **architectural or system-level decisions** when discussing projects.");
-            } else if (user.domain.includes("MBA") && !item.hit.includes("strategy") && item.score > 50) {
-                suggestion.push("For business questions, frame your answers around **business strategy, ROI, or market impact**.");
+            if (user.domain.includes("Tech") && !item.hit.includes("architecture")) {
+                 suggestion.push("For technical questions, ensure you briefly touch upon the **technical choices or architecture** involved in your solution.");
+            } else if (user.domain.includes("Business") && !item.hit.includes("stakeholder")) {
+                 suggestion.push("In business scenarios, always address **stakeholder management and communication** to demonstrate a holistic view.");
+            } else if (user.domain.includes("MBA") && !item.hit.includes("strategy")) {
+                 suggestion.push("As an MBA, frame your answers around **strategic rationale and measurable business impact**.");
             }
-
-            // Final fallback
+            
             if (suggestion.length === 0) {
-                suggestion.push("Excellent work! Your answer was clear, well-paced, and hit all the key concepts. Keep it up!");
+                 suggestion.push("Your answer was well-structured and delivered. Continue to refine your examples and ensure your results are quantifiable.");
             }
 
-            return suggestion.join('<br>');
+            return suggestion.join(' ');
         }
 
-        // --- Finish Test ---
+
+        // --- Results ---
         function finishTest() {
-            // 1. Process all responses
+            showPage('resultsPage');
+            breakdown = [];
+            const tbody = $('resultsTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
             let total = 0;
             let scoredQuestions = 0;
-            breakdown = [];
 
-            responses.forEach((resp, i) => {
-                const q = QUESTIONS[i];
-                const r = scoreAnswer(resp.answer, q.keywords);
+            QUESTIONS.forEach((q, i) => {
+                const resp = responses[i] || { answer: "Skipped by user.", wpm: 0, fillerWords: 0 };
+                const r = score(resp.answer, q.keywords);
 
                 if (resp.answer !== "Skipped by user.") {
                     total += r.score;
                     scoredQuestions++;
                 }
 
-                breakdown.push({
-                    question: q.q,
-                    answer: resp.answer,
-                    score: r.score,
-                    wpm: resp.wpm,
-                    fillerWords: resp.fillerWords,
-                    keywordsHit: r.matched,
-                    keywordsAll: q.keywords,
+                // MODIFIED: Store the elaborationPenalty flag in breakdown and generate suggestion
+                breakdown.push({ 
+                    ...resp, 
+                    question: q.q, 
+                    score: r.score, 
+                    hit: r.matched, 
+                    all: q.keywords, 
                     elaborationPenalty: r.elaborationPenalty,
-                    suggestion: getSuggestion({ ...resp, score: r.score, hit: r.matched, all: q.keywords, elaborationPenalty: r.elaborationPenalty })
+                    suggestion: getSuggestion({...resp, score: r.score, hit: r.matched, all: q.keywords, elaborationPenalty: r.elaborationPenalty}) 
                 });
-            });
-
-            // 2. Display Results Page
-            renderResults();
-            showPage('resultsPage');
-        }
-
-        // --- Render Results ---
-        function renderResults() {
-            const tbody = $('resultsTable').getElementsByTagName('tbody')[0];
-            const container = $('feedbackContainer');
-            const overallFeedbackBox = $('overallFeedbackBox');
-
-            tbody.innerHTML = '';
-            container.innerHTML = '';
-
-            // 1. Populate Table and Calculate Overall Score
-            let total = 0;
-            let scoredQuestions = 0;
-
-            breakdown.forEach((item, i) => {
-                const q = QUESTIONS[i];
-                const r = scoreAnswer(item.answer, q.keywords);
-
-                if (item.answer !== "Skipped by user.") {
-                    total += r.score;
-                    scoredQuestions++;
-                }
 
                 let colorClass = r.score > 75 ? '#16a34a' : r.score > 45 ? '#ca8a04' : '#dc2626';
-                if (item.answer === "Skipped by user.") colorClass = 'var(--text-500)';
+                if (resp.answer === "Skipped by user.") colorClass = 'var(--text-500)';
 
                 tbody.innerHTML += `
-                    <tr>
-                        <td>${q.q}</td>
-                        <td style="color:${colorClass}; font-weight:700;">${item.answer === "Skipped by user." ? 'Skipped' : `${r.score}%`}</td>
-                    </tr>`;
+                  <tr>
+                    <td>${q.q}</td>
+                    <td style="color:${colorClass}; font-weight:700;">${resp.answer === "Skipped by user." ? 'Skipped' : `${r.score}%`}</td>
+                  </tr>`;
             });
 
             const overall = scoredQuestions > 0 ? Math.round(total / scoredQuestions) : 0;
             $('scoreSummary').textContent = `${overall}%`;
-
             $('scoreSummary').style.animation = 'none'; // Reset animation
             void $('scoreSummary').offsetHeight; // Trigger reflow
             $('scoreSummary').style.animation = 'scorePop 0.8s ease-out 0.2s backwards'; // Reapply animation
-
 
             // Feedback Text
             let feedback = "";
             if (overall > 80) feedback = "🥳 **Outstanding performance!** Your answers were highly structured, detailed, and demonstrated strong professional command. You are well-prepared for your interview.";
             else if (overall > 50) feedback = "👍 **Good effort.** Your foundation is solid, but there's room for improvement. Focus on strengthening the 'Action' and 'Result' sections of your answers. Review the specific suggestions below.";
-            else feedback = "💡 **Keep practicing.** Your answers were brief or missed key structural components. Re-read the job description and practice using the STAR method for every question.";
+            else feedback = "💡 **Keep practicing.** Your responses need more detail and structure. Carefully read the suggestions provided for each question to improve your use of keywords and adherence to the STAR method.";
 
-            overallFeedbackBox.innerHTML = `<p>${feedback}</p>`;
+            $('overallFeedbackBox').innerHTML = feedback; // Use innerHTML to render bold text
+            generateDetailedFeedback();
+        }
 
+        function generateDetailedFeedback() {
+            const container = $('feedbackContainer');
+            container.innerHTML = '';
 
-            // 2. Populate Detailed Feedback (Accordion)
             breakdown.forEach((item, i) => {
-                const missed = item.keywordsAll.filter(k => !item.keywordsHit.includes(k));
-                const answerHTML = highlight(item.answer, item.keywordsHit);
-                let bodyContent = '';
-
-                if (item.answer === "Skipped by user.") {
-                    bodyContent = `<p style="font-style: italic;">The question was skipped. No feedback is available.</p>`;
-                } else {
-                    bodyContent = `
-                        <h4>Your Answer</h4>
-                        <p>${answerHTML}</p>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <p>WPM</p>
-                                <div class="stat-item-value">${item.wpm}</div>
-                            </div>
-                            <div class="stat-item">
-                                <p>Filler Words</p>
-                                <div class="stat-item-value">${item.fillerWords}</div>
-                            </div>
-                        </div>
-                        
-                        <h3>Key Analysis</h3>
-                        <p><strong>Keywords Hit:</strong> ${item.keywordsHit.map(k => `<span class="keyword-highlight">${k}</span>`).join(' ') || 'None'}</p>
-                        <p><strong>Keywords Missed:</strong> ${missed.map(k => `<span class="keyword-missed">${k}</span>`).join(' ') || 'None'}</p>
-
-                        <div class="suggestion-box">
-                            <strong>Coach Suggestion:</strong>
-                            <p>${item.suggestion}</p>
-                        </div>
-                    `;
-                }
-
-
+                const missed = item.all.filter(k => !item.hit.includes(k));
                 const div = document.createElement('div');
                 div.className = 'feedback-item';
-                div.innerHTML = `
-                    <div class="feedback-header">
-                        <span>Q${i + 1}: ${item.question}</span>
-                        <span style="font-weight:700; color:${colorClass};">${item.answer === "Skipped by user." ? 'Skipped' : `${item.score}%`}</span>
-                    </div>
-                    <div class="feedback-body">
-                        ${bodyContent}
-                    </div>
-                `;
 
+                let bodyContent = '';
+                if (item.answer === "Skipped by user.") {
+                    bodyContent = `<p style="color:var(--text-500);">This question was skipped. Focus on answering all questions next time!</p>`;
+                } else {
+                    // NEW: Penalty message for short answers
+                    let penaltyMessage = '';
+                    if (item.elaborationPenalty) {
+                        penaltyMessage = '<p style="color:var(--danger-500); font-weight:600; margin-bottom:10px;">❗ **Elaboration Penalty:** Answer is too short (less than 50 words) and score was capped at 30%. Add more detail.</p>';
+                    }
+
+                    bodyContent = `
+                      ${penaltyMessage}
+                      <p><strong>Transcript:</strong> ${highlight(item.answer, item.hit)}</p>
+                      <div class="stats-grid">
+                        <div class="stat-item"><div class="stat-item-value">${item.wpm}</div><small>WPM</small></div>
+                        <div class="stat-item"><div class="stat-item-value">${item.fillerWords}</div><small>Filler Words</small></div>
+                      </div>
+                      <p style="margin-top:16px;">
+                        <span class="keyword-missed">Missed Keywords (Synonyms Checked): ${missed.join(', ') || 'None'}</span>
+                      </p>
+                      <div class="suggestion-box">
+                        <strong>Coach's Suggestion:</strong>
+                        <p style="color: var(--text-900); font-size: 0.95rem; margin-top: 5px; margin-bottom: 0;">${item.suggestion}</p>
+                      </div>
+                      `;
+                }
+
+                div.innerHTML = `
+                  <div class="feedback-header">
+                    <strong>Q${i + 1}: ${item.question}</strong>
+                    <span>${item.answer === "Skipped by user." ? 'Skipped' : `${item.score}%`}</span>
+                  </div>
+                  <div class="feedback-body">
+                    ${bodyContent}
+                  </div>
+                `;
                 div.querySelector('.feedback-header').onclick = () => div.classList.toggle('open');
                 container.appendChild(div);
             });
         }
 
         function highlight(text, keys) {
-            if (!text || text === "Skipped by user." || text === "No answer recorded.") return text;
+            if (!text) return "No recording.";
             let html = text;
             keys.forEach(k => {
                 const reg = new RegExp(`(${k})`, 'gi');
@@ -1763,130 +1762,88 @@
 
         // PDF Generation
         $('downloadBtn').onclick = () => {
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                let y = 20;
-                const margin = 20;
-                const lineHeight = 5;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 20;
+            const margin = 20;
+            const lineHeight = 5;
 
-                // Helper to handle text wrapping and adding text
-                const addText = (text, x, y, options = {}) => {
-                    doc.setFont(options.font || 'helvetica', options.style || 'normal');
-                    doc.setFontSize(options.size || 10);
-                    const splitText = doc.splitTextToSize(text, 170);
-                    doc.text(splitText, x, y);
-                    return y + (splitText.length * lineHeight);
-                };
+            // Helper to handle text wrapping and page breaks
+            const addText = (text, x, y, options = {}) => {
+                doc.setFont(options.font || 'helvetica', options.style || 'normal');
+                doc.setFontSize(options.size || 10);
+                const lines = doc.splitTextToSize(text, 170);
 
-                // --- 1. Header ---
-                doc.setFontSize(22);
-                doc.setFont('helvetica', 'bold');
-                doc.text("AI Interview Report", 105, y, { align: 'center' });
-                y += 15;
+                // Check for page break BEFORE adding text
+                if (y + (lines.length * lineHeight) > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
 
-                // --- 2. Summary Box ---
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                y = addText(`Name: ${user.name}`, margin, y);
-                y = addText(`Experience: ${user.experience}`, margin, y);
-                y = addText(`Domain: ${user.domain}`, margin, y);
-                y = addText(`Overall Score: ${$('scoreSummary').textContent}`, margin, y);
-                y += 10;
-
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                y = addText(`Overall Feedback:`, margin, y);
-                doc.setFont('helvetica', 'normal');
-                // Clean the feedback text
-                const overallFeedback = $('overallFeedbackBox').textContent.replace(/🥳|👍|💡|\*\*/g, '').trim();
-                y = addText(overallFeedback, margin, y);
-                y += 15;
+                doc.text(lines, x, y);
+                return y + (lines.length * lineHeight);
+            };
 
 
-                // --- 3. Question Analysis ---
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                y = addText(`Question Analysis`, margin, y);
-                y += 7;
+            doc.setFontSize(20);
+            doc.text("Insmot AI Interview Report", 105, y, { align: 'center' });
+            y += 15;
 
-                breakdown.forEach((item, i) => {
-                    if (y > 270) { doc.addPage(); y = 20; }
+            doc.setFontSize(12);
+            y = addText(`Name: ${user.name}`, margin, y);
+            y = addText(`Experience: ${user.experience}`, margin, y);
+            y = addText(`Domain: ${user.domain}`, margin, y);
+            y = addText(`Overall Score: ${$('scoreSummary').textContent}`, margin, y);
+            y += 10;
 
-                    // Question Title
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    y = addText(`Q${i + 1}: ${item.question} (${item.answer === "Skipped by user." ? 'Skipped' : `${item.score}%`})`, margin, y);
-                    y += 5;
+            y = addText(`Summary: ${$('overallFeedbackBox').textContent.replace(/\*\*/g, '')}`, margin, y);
+            y += 10;
 
-                    // Score & Stats
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    if (item.answer !== "Skipped by user.") {
-                        y = addText(`Score: ${item.score}% | WPM: ${item.wpm} | Filler Words: ${item.fillerWords}`, margin, y);
-                    } else {
-                        y = addText(`Score: Skipped | WPM: 0 | Filler Words: 0`, margin, y);
-                    }
-                    y += 5;
+            // Question Analysis Header
+            doc.setDrawColor(37, 99, 235);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, 190, y);
+            y += 5;
 
-                    // Answer
-                    doc.setFont('helvetica', 'bold');
-                    y = addText(`Answer:`, margin, y);
-                    doc.setFont('helvetica', 'normal');
-                    const answerText = item.answer === "Skipped by user." ? "Answer: Skipped by user." : item.answer;
-                    y = addText(answerText, margin, y);
-                    y += lineHeight * 0.5;
+            // Iterate through breakdown for detailed report
+            breakdown.forEach((item, i) => {
+                y = addText(`Q${i + 1}: ${item.question}`, margin, y, { font: 'helvetica', style: 'bold', size: 12 });
+                y = addText(`Score: ${item.score}% | WPM: ${item.wpm} | Filler Words: ${item.fillerWords}`, margin, y, { size: 10 });
+                y += 2;
 
-                    // Keywords
-                    const missed = item.keywordsAll.filter(k => !item.keywordsHit.includes(k));
-                    y = addText(`Keywords Hit:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
-                    y = addText(item.keywordsHit.join(', ') || 'None', margin + 5, y);
-                    
-                    y = addText(`Keywords to Include:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
-                    y = addText(missed.join(', ') || 'None', margin + 5, y);
-                    y += lineHeight * 0.5;
-                    
-                    // Clean the suggestion text for PDF
-                    const suggestionClean = item.suggestion.replace(/\*\*/g, '').replace(/<[^>]*>?/gm, '');
+                const answerText = item.answer === "Skipped by user." ? "Answer: Skipped by user." : `Answer: ${item.answer}`;
+                y = addText(answerText, margin, y);
+                y += lineHeight * 0.5;
 
-                    y = addText(`Suggestion:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
-                    y = addText(suggestionClean, margin + 5, y);
-                    
-                    y += lineHeight * 1.5; 
-                });
+                const missed = item.all.filter(k => !item.hit.includes(k));
+                y = addText(`Keywords Hit:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                y = addText(item.hit.join(', ') || 'None', margin + 5, y);
+                
+                y = addText(`Keywords to Include:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                y = addText(missed.join(', ') || 'None', margin + 5, y);
+                y += lineHeight * 0.5;
+                
+                // Clean the suggestion text for PDF
+                const suggestionClean = item.suggestion.replace(/\*\*/g, '').replace(/<[^>]*>?/gm, '');
 
-                // --- 5. Save the PDF ---
-                doc.save(`Insmot_AI_Report_${user.name.replace(' ', '_') || 'Guest'}.pdf`);
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-            }
+                y = addText(`Suggestion:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                y = addText(suggestionClean, margin + 5, y);
+                
+                y += lineHeight * 1.5; 
+            });
+
+            // --- 5. Save the PDF ---
+            doc.save(`Insmot_AI_Report_${user.name.replace(' ', '_') || 'Guest'}.pdf`);
         };
-        
-        // ---------------------------------------------
-        // Reset Button
-        // ---------------------------------------------
+
         $('restartBtn').onclick = () => {
-            // Clear state
-            current = 0;
-            responses = [];
-            breakdown = [];
-            // user object is kept by default, but we could clear it
-            // user = {}; 
-            // localStorage.removeItem('insmotUser');
-            
-            // Reset inputs on form page (in case user isn't cleared)
-            $('jobDescInput').value = '';
-            
-            // Navigate back to form page
+            current = 0; responses = []; breakdown = [];
             showPage('formPage');
-        }
-        
-        // --- NEW: Initial Page Load ---
-        window.onload = () => {
-            loadUserFromLocal(); // Load user details from local storage on load
         };
-    </script>
 
+        window.onload = loadUserFromLocal;
+
+    </script>
 </body>
 
 </html>
