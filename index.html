@@ -1,0 +1,1892 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insmot AI Interview Coach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            /* NEW COLOR PALETTE: Royal Blue & Orange */
+            --primary-600: #2563EB;
+            /* Royal Blue */
+            --primary-500: #3B82F6;
+            --primary-100: #DBEAFE;
+            --primary-50: #EFF6FF;
+            --secondary-600: #F97316;
+            /* Orange */
+            --secondary-100: #FFEDD5;
+            --danger-500: #EF4444;
+            --danger-100: #FEE2E2;
+            --text-900: #1E293B;
+            /* Slate 900 */
+            --text-500: #64748B;
+            /* Slate 500 */
+            --border: #E2E8F0;
+            --bg: #F8FAFC;
+            /* Global styles */
+            font-family: 'Inter', sans-serif;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+            color: var(--text-900);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 20px;
+            /* Softer corners */
+            padding: 40px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 1px solid white;
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            opacity: 0;
+            transform: translateY(20px);
+            display: none;
+        }
+
+        .page.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-top: 0;
+            color: var(--text-900);
+            letter-spacing: -0.025em;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-900);
+            margin-top: 0;
+            letter-spacing: -0.025em;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-900);
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: var(--text-500);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .list-container {
+            max-width: 550px;
+            margin: 0 auto 30px;
+            text-align: left;
+            background: var(--primary-50);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--primary-100);
+        }
+
+        .list-container ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            color: var(--text-500);
+            margin-top: 10px;
+        }
+
+        .list-container li {
+            margin-bottom: 8px;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        @media (min-width: 640px) {
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-span-2 {
+                grid-column: span 2 / span 2;
+            }
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-900);
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        /* MODIFIED: Added 'select' to input styles */
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            background-color: #fff;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* MODIFIED: Added 'select' to focus styles */
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 4px var(--primary-100);
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.ghost {
+            background-color: transparent;
+            color: var(--text-500);
+            border: 1px solid var(--border);
+        }
+
+        .btn.ghost:hover {
+            background-color: var(--bg);
+            color: var(--text-900);
+            border-color: var(--text-900);
+        }
+
+        .btn.accent {
+            background-color: var(--primary-600);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn.accent:hover {
+            background-color: var(--primary-500);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn.danger {
+            background-color: var(--danger-500);
+            color: white;
+        }
+
+        .btn.danger:hover {
+            background-color: #DC2626;
+        }
+
+        /* NEW: Warning/Pause Button Style */
+        .btn.warning {
+            background-color: var(--secondary-600);
+            color: white;
+        }
+
+        .btn.warning:hover {
+            background-color: #EA580C;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--danger-500);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-left: 8px;
+        }
+
+        .recording-dot.is-recording {
+            opacity: 1;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Intro Page */
+        .illustration {
+            font-size: 5rem;
+            margin: 20px 0;
+            animation: bounceIn 1s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Practice Page */
+        #progressBarContainer {
+            height: 6px;
+            background-color: var(--border);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        #progressBar {
+            height: 100%;
+            width: 0;
+            background-color: var(--primary-600);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .avatar-question-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .qbox {
+            width: 100%;
+            border: 1px solid var(--border);
+            background-color: white;
+            padding: 32px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            /* NEW: Add slight hover effect for better feel */
+            transform: scale(1);
+        }
+
+        .qbox:hover {
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* NEW: Animation for Question Text on Load */
+        #questionText {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-900);
+            margin: 0;
+            line-height: 1.4;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        #qIndex {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--secondary-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+
+        #timerDisplay {
+            margin-top: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-500);
+        }
+
+        .transcript {
+            min-height: 120px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 20px;
+            font-style: italic;
+            color: var(--text-500);
+            background-color: #fff;
+            transition: all 0.3s;
+            line-height: 1.7;
+            font-size: 1.05rem;
+            /* NEW: Soft shadow */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .transcript.is-recording {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 4px var(--primary-50), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            color: var(--text-900);
+            font-style: normal;
+        }
+
+        /* --- UPDATED: Avatar States & Animation --- */
+        #avatarContainer {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0e7ff, #f3e8ff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: all 0.5s ease-in-out;
+            border: 4px solid white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        #avatarImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Speaking State: Rotating Gradient Border */
+        #avatarContainer.speaking::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary-600), var(--secondary-600), var(--primary-600));
+            z-index: 1;
+            animation: spin-border 2s linear infinite;
+        }
+
+        @keyframes spin-border {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Listening State: Breathing Ripple (Red for Recording) */
+        #avatarContainer.listening {
+            transform: scale(1.05);
+            border-color: var(--danger-500);
+        }
+
+        #avatarContainer.listening::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--danger-500);
+            animation: ripple 1.5s infinite;
+            opacity: 0;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* Paused State */
+        #avatarContainer.paused {
+            filter: grayscale(100%);
+            transform: scale(0.95);
+            opacity: 0.7;
+            /* NEW: Add a subtle overlay for paused state */
+            box-shadow: 0 0 0 6px var(--secondary-600);
+        }
+
+        /* Results Page */
+        #scoreSummary {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary-600);
+            text-align: center;
+            margin-bottom: 30px;
+            /* NEW: Result animation */
+            animation: scorePop 0.8s ease-out 0.2s backwards;
+        }
+
+        @keyframes scorePop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #overallFeedbackBox {
+            background: var(--primary-50);
+            border: 1px solid var(--primary-100);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            font-weight: 500;
+            font-size: 1.1rem;
+            color: var(--text-900);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-item {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-item-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-900);
+        }
+
+        #resultsTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 32px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        #resultsTable th {
+            background-color: var(--primary-50);
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--primary-600);
+            border-bottom: 2px solid var(--primary-100);
+        }
+
+        #resultsTable td {
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        #resultsTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .feedback-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            background: white;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .feedback-item.open {
+            border-color: var(--primary-500);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback-header {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            font-weight: 600;
+        }
+
+        .feedback-header:hover {
+            background-color: var(--bg);
+        }
+
+        .feedback-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.5s ease;
+            background-color: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .feedback-item.open .feedback-body {
+            max-height: 1500px;
+            padding: 24px;
+        }
+
+        .suggestion-box {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            background-color: var(--secondary-100);
+            border-left: 4px solid var(--secondary-600);
+        }
+
+        .suggestion-box strong {
+            color: var(--secondary-600);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .keyword-highlight {
+            background-color: #DCFCE7;
+            color: #166534;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .keyword-missed {
+            background-color: #FEE2E2;
+            color: #991B1B;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        /* Processing Overlay */
+        #processingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid var(--primary-100);
+            border-top: 4px solid var(--primary-600);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page {
+                padding: 24px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                justify-content: center;
+            }
+
+            #nextBtn {
+                width: 100%;
+            }
+
+            #avatarContainer {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="processingOverlay">
+        <div class="spinner"></div>
+        <p style="color:var(--primary-600); font-weight:600; margin-top:16px;">Analyzing your answer...</p>
+    </div>
+
+    <div class="page visible" id="formPage">
+        <h1 style="color:var(--primary-600);"><span style="color:var(--secondary-600);">Insmot</span> AI Coach</h1>
+        <p>Let’s configure your interview session. *All fields are required to tailor your questions.</p>
+
+        <div class="form-grid">
+            <div>
+                <label for="nameInput">Full Name</label>
+                <input type="text" id="nameInput" placeholder="Enter your full name" />
+            </div>
+            <div>
+                <label for="emailInput">Email</label>
+                <input type="email" id="emailInput" placeholder="Enter your email" />
+            </div>
+
+            <div>
+                <label for="experienceInput">Experience</label>
+                <select id="experienceInput">
+                    <option value="">Select Experience</option>
+                    <option value="In College">In College</option>
+                    <option value="0-1 years">0-1 years</option>
+                    <option value="1-5 years">1-5 years</option>
+                    <option value="5+ years">5+ years</option>
+                </select>
+            </div>
+            <div>
+                <label for="domainInput">Domain</label>
+                <select id="domainInput">
+                    <option value="">Select Domain</option>
+                    <option value="B.Com">B.Com</option>
+                    <option value="BBA">BBA</option>
+                    <option value="B.Tech/B.E">B.Tech/B.E</option>
+                    <option value="BCA">BCA</option>
+                    <option value="Bsc">Bsc</option>
+                    <option value="MBA">MBA</option>
+                    <option value="M.Tech">M.Tech</option>
+                </select>
+            </div>
+
+            <div class="grid-span-2">
+                <label for="jobDescInput">Paste Job Description (Optional)</label>
+                <textarea id="jobDescInput"
+                    placeholder="Paste the job description here to tailor the questions..."></textarea>
+            </div>
+        </div>
+
+        <div class="controls" style="justify-content: flex-end; border-top: none;">
+            <button class="btn accent" id="startIntro">Start Session &rarr;</button>
+        </div>
+    </div>
+
+    <div class="page" id="introPage" style="text-align: center;">
+        <div class="illustration">🎙️</div>
+        <h1><span id="welcomeText">Hello there!</span></h1>
+        <p>Prepare for your interview simulation. The AI Coach will speak the question, and when prompted, you can press **"Start Recording"** to begin your answer. You can pause or stop your recording at any time.</p>
+
+        <div class="list-container">
+            <h3>Interview Structure</h3>
+            <ul>
+                <li>You will be asked **8** carefully designed questions.</li>
+                <li>The questions are **tailored** to your selected domain and experience.</li>
+                <li>Answering thoroughly is key! We recommend using the **STAR** method.</li>
+                <li>Your session will conclude with a **detailed performance report** and suggestions.</li>
+            </ul>
+        </div>
+
+        <div class="controls" style="justify-content: flex-end; border-top: none;">
+            <button class="btn accent" id="startPractice">Begin Practice &rarr;</button>
+        </div>
+    </div>
+
+    <div class="page" id="practicePage">
+        <div id="progressBarContainer">
+            <div id="progressBar"></div>
+        </div>
+
+        <div class="avatar-question-stack">
+            <div id="avatarContainer">
+                <img id="avatarImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%236366F1' d='M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 3a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0 14.2c-2.5 0-4.71-1.26-6-3.21c.03-1.99 4-3.84 6-3.84s5.97 1.85 6 3.84c-1.29 1.95-3.5 3.21-6 3.21z'/%3E%3C/svg%3E" alt="AI Interview Coach Avatar" />
+            </div>
+            <div class="qbox">
+                <p id="qIndex">Question 1 / 1</p>
+                <p id="questionText">Loading...</p>
+            </div>
+        </div>
+
+        <div id="timerDisplay">00:00</div>
+        <div class="transcript" id="transcript">Ready to record.</div>
+
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn accent" id="recordBtn">Start Recording</button>
+                <button class="btn warning" id="pauseBtn" disabled>Pause</button>
+                <button class="btn danger" id="stopBtn" disabled>Stop</button>
+                <div class="recording-dot" id="recordingDot"></div>
+            </div>
+            <button class="btn ghost" id="nextBtn" disabled>Skip</button>
+        </div>
+    </div>
+
+    <div class="page" id="resultsPage">
+        <div style="text-align:center;">
+            <h2>Performance Report</h2>
+            <p>Breakdown of your interview session</p>
+            <div id="scoreSummary">0%</div>
+        </div>
+
+        <div id="overallFeedbackBox"></div>
+
+        <h3>Question Analysis</h3>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th style="width: 15%;">Score</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div id="feedbackContainer"></div>
+
+        <div class="controls">
+            <button class="btn ghost" id="restartBtn">Start New Session</button>
+            <button class="btn accent" id="downloadBtn">Download PDF Report</button>
+        </div>
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+
+        // State
+        let recognition = null;
+        let isRecording = false;
+        let isPaused = false;
+        let timerInterval = null;
+        let seconds = 0;
+        // We need to store the transcript across multiple recognition sessions (especially on mobile)
+        let accumulatedTranscript = ""; // The final, confirmed text from previous bursts
+        let currentFinalTranscript = ""; // The confirmed text from the current burst
+        let responses = [];
+        let breakdown = [];
+        let current = 0; // Current question index
+        let user = {};
+
+        // TTS setup
+        const synth = window.speechSynthesis;
+        let preferredVoice = null;
+        let currentUtterance = null;
+        let ttsReady = false;
+
+        // Question Set - Note: The domain logic pulls from this set
+        const GENERIC_QUESTIONS = [
+            { q: "Tell me about yourself.", keywords: ["experience", "role", "skills", "achievement", "goal"] },
+            { q: "What are your greatest strengths and weaknesses?", keywords: ["strength", "weakness", "self-aware", "improvement", "relevance"] },
+            { q: "Why do you want to work here?", keywords: ["research", "mission", "fit", "contribution", "value"] },
+            { q: "Where do you see yourself in the next 5 years?", keywords: ["growth", "leadership", "contribution", "expertise"] }
+        ];
+
+        const BEHAVIORAL_QUESTIONS = {
+            "In College": {
+                "Tech": [
+                    { q: "Describe a complex project you worked on during your studies. What was your specific role?", keywords: ["project", "role", "solution", "teamwork", "challenge"] },
+                    { q: "Tell me about a time you had to learn a new programming language or tool quickly for a course. How did you approach it?", keywords: ["learn", "resource", "approach", "time management", "result"] },
+                    { q: "Describe a conflict you had with a team member on an assignment. How did you resolve it?", keywords: ["conflict", "listen", "compromise", "resolution", "professionalism"] },
+                    { q: "Why did you choose your specific domain/major, and how has it prepared you for an industry role?", keywords: ["motivation", "prepared", "skills", "application", "value"] }
+                ],
+                "Business": [
+                    { q: "Describe a time you used data or research to make a decision for a student club or course project.", keywords: ["data", "analysis", "decision", "impact", "result"] },
+                    { q: "Tell me about a time you had to persuade a group or peer to agree with your idea.", keywords: ["persuade", "logic", "communication", "resistance", "agreement"] },
+                    { q: "Describe a significant challenge you faced in a course project and how you overcame it.", keywords: ["challenge", "overcame", "strategy", "persistence", "solution"] },
+                    { q: "Give an example of a time you received constructive criticism. How did you respond?", keywords: ["criticism", "listen", "improve", "feedback", "growth"] }
+                ],
+                "MBA": [ /* Entry-level MBA/Business Focus */
+                    { q: "Describe a project where you had to manage limited resources (time or budget).", keywords: ["resource", "budget", "optimize", "priority", "outcome"] },
+                    { q: "Tell me about a time you had to lead a diverse team to a common goal.", keywords: ["lead", "diverse", "motivation", "communication", "common goal"] },
+                    { q: "Describe a complex business concept you had to explain simply to someone unfamiliar with it.", keywords: ["complex", "simplify", "clarity", "audience", "communication"] },
+                    { q: "Give an example of a time you anticipated a potential problem and took proactive steps.", keywords: ["anticipate", "proactive", "risk", "mitigate", "action"] }
+                ]
+            },
+            "0-1 years": {
+                "Tech": [
+                    { q: "Give me an example of a mistake you made early in your career. What did you learn from it?", keywords: ["mistake", "learned", "correction", "process", "ownership"] },
+                    { q: "Describe a technical problem you solved that required significant research or outside-the-box thinking.", keywords: ["challenge", "research", "innovative", "solution", "impact"] },
+                    { q: "Tell me about a time you had to deal with ambiguity or changing requirements from a manager or client.", keywords: ["ambiguity", "clarify", "adapt", "communication", "result"] },
+                    { q: "Describe a project where you went above and beyond the minimum requirements. What motivated you?", keywords: ["initiative", "extra mile", "motivation", "quality", "impact"] }
+                ],
+                "Business": [
+                    { q: "Describe a time you had to handle an irate customer or difficult stakeholder. What was your strategy?", keywords: ["de-escalate", "listen", "empathy", "solution", "stakeholder"] },
+                    { q: "Tell me about a time you identified an inefficiency in a work process and took steps to fix it.", keywords: ["process", "inefficiency", "improve", "initiative", "impact"] },
+                    { q: "Give an example of a challenging goal you set for yourself. How did you ensure you met it?", keywords: ["goal", "plan", "metric", "persistence", "achieve"] },
+                    { q: "Describe a situation where you had to adapt your communication style to fit a specific audience.", keywords: ["adapt", "audience", "tailor", "communication", "clarity"] }
+                ],
+                "MBA": [ /* Entry-level MBA/Business Focus */
+                    { q: "Describe a project where you had to manage limited resources (time or budget).", keywords: ["resource", "budget", "optimize", "priority", "outcome"] },
+                    { q: "Tell me about a time you had to lead a diverse team to a common goal.", keywords: ["lead", "diverse", "motivation", "communication", "common goal"] },
+                    { q: "Describe a complex business concept you had to explain simply to someone unfamiliar with it.", keywords: ["complex", "simplify", "clarity", "audience", "communication"] },
+                    { q: "Give an example of a time you anticipated a potential problem and took proactive steps.", keywords: ["anticipate", "proactive", "risk", "mitigate", "action"] }
+                ]
+            },
+            "1-5 years": {
+                "Tech": [
+                    { q: "Describe a disagreement you had with a technical lead or architect on a design choice. How was it resolved?", keywords: ["design choice", "disagreement", "justification", "compromise", "resolution"] },
+                    { q: "Tell me about a time you had to coach a junior team member on a difficult skill or process.", keywords: ["coach", "mentor", "patience", "improvement", "knowledge transfer"] },
+                    { q: "Give an example of a technical debt issue you encountered. How did you convince management to prioritize fixing it?", keywords: ["technical debt", "prioritize", "justification", "risk", "mitigation"] },
+                    { q: "Describe a situation where you had to quickly switch priorities on a project. How did you manage the change and communicate with the team?", keywords: ["switch", "communicate", "reprioritize", "adapt", "stakeholder"] }
+                ],
+                "Business": [
+                    { q: "Describe a time you had to present complex information to executive leadership. How did you tailor the presentation?", keywords: ["executive", "concise", "data visualization", "recommendation", "impact"] },
+                    { q: "Tell me about a time you had to make a tough business decision with incomplete information.", keywords: ["decision", "risk", "data gap", "assumption", "outcome"] },
+                    { q: "Give an example of a major obstacle you faced in achieving a key performance indicator (KPI). How did you overcome it?", keywords: ["kpi", "obstacle", "strategy", "persistence", "achieve"] },
+                    { q: "Describe your experience managing a budget or resource allocation for a project. What was the outcome?", keywords: ["budget", "allocation", "constraint", "efficiency", "outcome"] }
+                ],
+                "MBA": [ /* Senior Managerial / MBA Focus */
+                    { q: "Describe a significant strategy you developed that increased profitability or market share for a business unit.", keywords: ["strategy", "profitability", "market share", "analytics", "execution"] },
+                    { q: "Tell me about a time you had to lead a major cross-functional initiative.", keywords: ["cross-functional", "leadership", "alignment", "stakeholder", "outcome"] },
+                    { q: "Give an example of a time you had to pivot a business plan based on new market data.", keywords: ["pivot", "market data", "adapt", "justification", "risk"] },
+                    { q: "Describe how you prioritize conflicting initiatives across different departments.", keywords: ["prioritize", "roi", "alignment", "communication", "framework"] }
+                ]
+            },
+            "5+ years": {
+                "Tech": [
+                    { q: "Describe a major system outage or crisis you managed. What was your role and the immediate actions taken?", keywords: ["crisis", "mitigation", "role", "communication", "post-mortem"] },
+                    { q: "Tell me about a strategy you implemented to improve the overall quality or scalability of the team's codebase.", keywords: ["strategy", "architecture", "scalability", "quality", "long-term impact"] },
+                    { q: "Give an example of a critical project that failed or did not meet expectations. What was your role, and what did you learn?", keywords: ["failure", "reflection", "lessons learned", "accountability", "recovery"] },
+                    { q: "Describe your leadership style and how you use it to motivate and develop your team members.", keywords: ["leadership", "motivate", "develop", "mentoring", "empower"] }
+                ],
+                "Business": [
+                    { q: "Describe a major organizational change you led or were a part of. How did you manage stakeholder resistance?", keywords: ["change management", "stakeholder", "communication", "resistance", "adoption"] },
+                    { q: "Tell me about your experience developing annual or long-term business plans. What was your most successful plan?", keywords: ["business plan", "strategy", "forecasting", "execution", "success"] },
+                    { q: "Give an example of a time you had to fire or let go of a team member. How did you handle the process professionally and with empathy?", keywords: ["difficult decision", "empathy", "professionalism", "process", "team morale"] },
+                    { q: "Describe a situation where your recommendation directly influenced a major company investment or strategic direction.", keywords: ["influence", "strategic", "investment", "justification", "impact"] }
+                ],
+                "MBA": [ /* Same as 1-5 years MBA, focused on leadership */
+                    { q: "Describe a significant strategy you developed that increased profitability or market share for a business unit.", keywords: ["strategy", "profitability", "market share", "analytics", "execution"] },
+                    { q: "Tell me about a time you had to lead a major cross-functional initiative.", keywords: ["cross-functional", "leadership", "alignment", "stakeholder", "outcome"] },
+                    { q: "Give an example of a time you had to pivot a business plan based on new market data.", keywords: ["pivot", "market data", "adapt", "justification", "risk"] },
+                    { q: "Describe how you prioritize conflicting initiatives across different departments.", keywords: ["prioritize", "roi", "alignment", "communication", "framework"] }
+                ]
+            }
+        };
+
+
+        function getPreferredVoice() {
+            if (synth.getVoices().length > 0) {
+                // Try to find a high-quality female or male voice (browser dependent)
+                const voices = synth.getVoices();
+                preferredVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google') && (v.name.includes('Female') || v.name.includes('Male'))) ||
+                    voices.find(v => v.lang.startsWith('en')); // Fallback to any English voice
+                ttsReady = true;
+            } else {
+                // Voices might load asynchronously
+                synth.onvoiceschanged = () => {
+                    getPreferredVoice();
+                };
+            }
+        }
+        getPreferredVoice();
+
+        // Page Navigation
+        let currentPage = 'formPage';
+        function showPage(pageId) {
+            const oldPage = $(currentPage);
+            const newPage = $(pageId);
+            if (!newPage) return;
+
+            // If we are showing the current page, do nothing (used for initial load fix)
+            if (pageId === currentPage && newPage.classList.contains('visible')) return;
+
+            if (oldPage) {
+                oldPage.classList.remove('visible');
+                setTimeout(() => {
+                    oldPage.style.display = 'none';
+                    newPage.style.display = 'block';
+                    void newPage.offsetWidth;
+                    newPage.classList.add('visible');
+                    currentPage = pageId;
+                }, 400);
+            } else {
+                newPage.style.display = 'block';
+                void newPage.offsetWidth;
+                newPage.classList.add('visible');
+                currentPage = pageId;
+            }
+        }
+
+        // LocalStorage function
+        function saveUserToLocal() {
+            localStorage.setItem('insmotUser', JSON.stringify(user));
+        }
+
+        function loadUserFromLocal() {
+            const storedUser = localStorage.getItem('insmotUser');
+            if (storedUser) {
+                user = JSON.parse(storedUser);
+                // Retain Name, Email, JobDesc
+                $('nameInput').value = user.name || '';
+                $('emailInput').value = user.email || '';
+                $('jobDescInput').value = user.jobDesc || '';
+                // NEW Fields: Check if elements exist before setting value
+                if ($('experienceInput')) $('experienceInput').value = user.experience || '';
+                if ($('domainInput')) $('domainInput').value = user.domain || '';
+            }
+        }
+
+        // TTS Logic
+        function speak(text) {
+            if (!synth) return;
+            if (currentUtterance) synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (preferredVoice) utterance.voice = preferredVoice;
+            utterance.rate = 1.0;
+
+            utterance.onstart = () => {
+                // NEW: Avatar Logic
+                avatarContainer.classList.add('speaking');
+                avatarContainer.classList.remove('listening');
+                avatarContainer.classList.remove('paused');
+            };
+
+            utterance.onend = () => {
+                avatarContainer.classList.remove('speaking');
+                currentUtterance = null;
+                // Enable the record button and next button after speaking is complete
+                recordBtn.disabled = false;
+                nextBtn.disabled = false;
+            };
+
+            utterance.onerror = (event) => {
+                console.error("SpeechSynthesisUtterance.onerror", event);
+                avatarContainer.classList.remove('speaking');
+                // Ensure buttons are still enabled even if speech fails
+                recordBtn.disabled = false;
+                nextBtn.disabled = false;
+            };
+
+            currentUtterance = utterance;
+            synth.speak(utterance);
+        }
+
+        // Timer Logic
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds++;
+                const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+                const sec = String(seconds % 60).padStart(2, '0');
+                $('timerDisplay').textContent = `${min}:${sec}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            seconds = 0;
+            $('timerDisplay').textContent = `00:00`;
+        }
+
+
+        // Speech Recognition Setup
+        function setupRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech Recognition is not supported in your browser. Please use Chrome or a compatible browser for this feature.");
+                recordBtn.disabled = true;
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true; // Important for long sentences / mobile restart logic
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            // --------------------------------------------
+            // FIX START: Correctly accumulate transcript within the session (Fixes mobile duplication)
+            // --------------------------------------------
+            recognition.onresult = (event) => {
+                let interimTranscript = "";
+                let finalResultOfBurst = ""; 
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalResultOfBurst = transcript; // Only track the final part
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalResultOfBurst) {
+                    currentFinalTranscript = finalResultOfBurst;
+                }
+                
+                // Display: Accumulated (previous bursts) + Current Final (state) + Current Interim (new text)
+                // The replace is for cleanup of any accidental double spaces at the joins.
+                transcriptEl.textContent = (accumulatedTranscript + ' ' + currentFinalTranscript + ' ' + interimTranscript).replace(/\s\s+/g, ' ').trim();
+            };
+            // --------------------------------------------
+            // FIX END: Correctly accumulate transcript within the session
+            // --------------------------------------------
+
+
+            recognition.onstart = () => {
+                // If we are resuming, don't clear text
+                if (!accumulatedTranscript) {
+                    transcriptEl.textContent = 'Listening...';
+                }
+                isRecording = true;
+                isPaused = false;
+
+                // UI Updates
+                recordBtn.disabled = true;
+                stopBtn.disabled = false;
+                pauseBtn.disabled = false;
+                pauseBtn.textContent = "Pause"; // Ensure correct label
+                nextBtn.disabled = true; // Disable Skip/Next button while recording
+                transcriptEl.classList.add('is-recording');
+                avatarContainer.classList.add('listening');
+                avatarContainer.classList.remove('speaking');
+                avatarContainer.classList.remove('paused');
+                recordingDot.classList.add('is-recording');
+                timerDisplay.style.color = 'var(--text-900)';
+                startTimer();
+            };
+
+            // --------------------------------------------
+            // Robust multi-session recording logic (remains from previous fix)
+            // --------------------------------------------
+            recognition.onend = () => {
+                // Step 1: Save the confirmed transcript chunk from the just-ended recognition session
+                if (currentFinalTranscript) {
+                    // Add a space to separate the phrases from different sessions.
+                    accumulatedTranscript += currentFinalTranscript + ' ';
+                    currentFinalTranscript = ""; // Clear for the next burst
+                }
+
+                if (isPaused) {
+                    // If intentionally paused, stop here.
+                    transcriptEl.textContent = accumulatedTranscript.trim() || 'Paused.';
+                    return;
+                }
+
+                if (isRecording) {
+                    // UNEXPECTED END (mic timeout/server drop), but we are still logically recording. RESTART.
+                    try {
+                        // MODIFIED: Only update the UI to show the combined transcript. NO "Still listening." text.
+                        transcriptEl.textContent = accumulatedTranscript.trim() || 'Listening...';
+                        recognition.start(); // Restart listening
+                    } catch (e) {
+                        console.error("Recognition auto-restart failed:", e);
+                    }
+                } else {
+                    // Intentionally stopped (stop button pressed)
+                    // Finalize transcript
+                    const finalAnswer = accumulatedTranscript.trim() || 'No answer recorded.';
+
+                    // Store the response for scoring
+                    responses[current] = {
+                        answer: finalAnswer,
+                        time: seconds,
+                    };
+
+                    // UI Updates
+                    stopTimer();
+                    recordBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    nextBtn.disabled = false; // Enable Skip/Next button (now functions as Next)
+                    nextBtn.textContent = "Next Question &rarr;"; // Change label
+                    transcriptEl.classList.remove('is-recording');
+                    avatarContainer.classList.remove('listening');
+                    recordingDot.classList.remove('is-recording');
+                    timerDisplay.style.color = 'var(--text-500)';
+                    transcriptEl.textContent = finalAnswer;
+
+                    // Immediately calculate WPM and Filler Words for the current response
+                    const result = calculateWPM(finalAnswer, seconds);
+                    responses[current].wpm = result.wpm;
+                    responses[current].fillerWords = countFillerWords(finalAnswer);
+
+                    // Auto-advance if not the last question and answer is non-empty
+                    if (current < QUESTIONS.length - 1 && finalAnswer !== 'No answer recorded.') {
+                        // Show overlay for a short period before auto-advancing
+                        processingOverlay.style.display = 'flex';
+                        setTimeout(() => {
+                            processingOverlay.style.display = 'none';
+                            current++;
+                            updateQ();
+                        }, 500);
+                    } else if (current === QUESTIONS.length - 1) {
+                        // Finish the test if it was the last question
+                        processingOverlay.style.display = 'flex';
+                        setTimeout(() => {
+                            processingOverlay.style.display = 'none';
+                            finishTest();
+                        }, 500);
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Recognition error:", event.error);
+                // Handle recognition errors gracefully
+                if (isRecording) {
+                    isRecording = false; // Reset state
+                    stopTimer();
+                    // Fallback UI reset
+                    recordBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    nextBtn.disabled = false;
+                    transcriptEl.classList.remove('is-recording');
+                    avatarContainer.classList.remove('listening');
+                    recordingDot.classList.remove('is-recording');
+                    timerDisplay.style.color = 'var(--text-500)';
+
+                    // If it was an auto-restart error, the text might already be stored, so don't clear.
+                    // If no text was recorded, inform the user.
+                    if (accumulatedTranscript.trim() === '') {
+                        transcriptEl.textContent = 'Recording stopped due to an error. Please try again.';
+                    }
+                    currentFinalTranscript = "";
+                }
+            };
+        }
+
+        // --- Page 1 ---
+        $('startIntro').onclick = () => {
+            user = {
+                name: $('nameInput').value.trim(),
+                email: $('emailInput').value.trim(),
+                experience: $('experienceInput').value, // NEW: Capture experience
+                domain: $('domainInput').value, // NEW: Capture domain
+                jobDesc: $('jobDescInput').value.trim(),
+            };
+
+            if (!user.name) {
+                alert('Please enter your name.');
+                return;
+            }
+            if (!user.experience) {
+                alert('Please select your experience.');
+                return;
+            }
+            // Simple validation
+            if (!user.domain) {
+                alert('Please select your domain.');
+                return;
+            }
+            // Simple validation
+
+            saveUserToLocal(); // Call the modified function
+            buildQuestionSet();
+            $('welcomeText').textContent = `Hello, ${user.name}!`;
+            speak(`Hello ${user.name}, welcome to Insmot AI interview. You will be taken through 8 carefully designed questions that reflect real interview scenarios. Each question tests your clarity, confidence, and communication skills. All the best, let's begin.`);
+            showPage('introPage');
+        };
+
+        // --------------------------------------------
+        // MODIFIED: Function to build the 8-question set
+        // --------------------------------------------
+        function buildQuestionSet() {
+            QUESTIONS = [...GENERIC_QUESTIONS]; // Start with 4 Generic
+
+            const userExperience = user.experience;
+            const userDomain = user.domain;
+
+            // 1. Determine the experience key (must match BEHAVIORAL_QUESTIONS keys)
+            const expKey = userExperience in BEHAVIORAL_QUESTIONS ? userExperience : "0-1 years";
+
+            // 2. Determine the domain group (Tech, Business, or MBA)
+            let domainGroup = "";
+            const techDomains = ["B.Tech/B.E", "BCA", "M.Tech"];
+            const businessDomains = ["B.Com", "BBA", "Bsc", "MBA"]; // MBA is listed here but has its own special section
+            if (techDomains.includes(userDomain)) {
+                domainGroup = "Tech";
+            } else if (businessDomains.includes(userDomain)) {
+                if (userDomain === "MBA") {
+                    domainGroup = "MBA";
+                } else {
+                    domainGroup = "Business";
+                }
+            } else {
+                // Fallback for safety
+                domainGroup = "Business";
+            }
+
+
+            // 3. Select 4 domain-specific questions (or less if the set is smaller)
+            const behavioralSet = BEHAVIORAL_QUESTIONS[expKey][domainGroup];
+            if (behavioralSet && behavioralSet.length > 0) {
+                // Shuffle and pick the first 4 (or all if < 4)
+                const shuffled = [...behavioralSet].sort(() => 0.5 - Math.random());
+                const selectedBehavioral = shuffled.slice(0, 4);
+                QUESTIONS.push(...selectedBehavioral);
+            }
+
+            // Ensure we have exactly 8 questions, padding with generic if necessary
+            while (QUESTIONS.length < 8) {
+                // Simple padding logic, avoids infinite loop if logic above fails
+                QUESTIONS.push(GENERIC_QUESTIONS[QUESTIONS.length % GENERIC_QUESTIONS.length]);
+            }
+        }
+
+
+        // --- Page 2 ---
+        $('startPractice').onclick = () => {
+            if (!recognition) {
+                setupRecognition(); // Initialize recognition only when starting the practice
+            }
+            showPage('practicePage');
+            updateQ();
+        };
+
+        const transcriptEl = $('transcript');
+        const recordBtn = $('recordBtn');
+        const stopBtn = $('stopBtn');
+        const pauseBtn = $('pauseBtn');
+        const nextBtn = $('nextBtn');
+        const recordingDot = $('recordingDot');
+        const avatarContainer = $('avatarContainer');
+        const timerDisplay = $('timerDisplay');
+        const processingOverlay = $('processingOverlay');
+
+
+        function updateQ() {
+            // Reset for the new question
+            stopTimer();
+            resetTimer(); // Also resets the display
+            currentFinalTranscript = "";
+            accumulatedTranscript = "";
+            isRecording = false;
+            isPaused = false;
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            pauseBtn.disabled = true;
+            nextBtn.disabled = true;
+            nextBtn.textContent = "Skip"; // Reset label to Skip
+            avatarContainer.classList.remove('speaking', 'listening', 'paused');
+
+            $('qIndex').textContent = `Question ${current + 1} / ${QUESTIONS.length}`;
+
+            // Use a temporary span to trigger the fadeIn animation on the question text
+            const questionTextEl = $('questionText');
+            questionTextEl.textContent = QUESTIONS[current].q;
+            questionTextEl.style.animation = 'none'; // Reset animation
+            void questionTextEl.offsetHeight; // Trigger reflow
+            questionTextEl.style.animation = 'fadeIn 0.8s ease-out'; // Reapply animation
+
+            transcriptEl.textContent = 'Press "Start Recording" to begin.';
+            speak(QUESTIONS[current].q); // nextBtn is enabled inside speak.onend
+
+            const progress = ((current) / QUESTIONS.length) * 100;
+            $('progressBar').style.width = `${progress}%`;
+        }
+
+        // --- Control Logic ---
+        function startRecording() {
+            if (!recognition) return;
+            try {
+                recognition.start(); // This triggers onstart -> starts timer etc.
+            } catch (e) { }
+        }
+
+        // NEW: Pause Functionality
+        function togglePause() {
+            if (isPaused) {
+                // RESUME
+                isPaused = false;
+                // recognition.start() will trigger onstart, which resets UI to listening
+                try {
+                    recognition.start();
+                } catch (e) { }
+            } else {
+                // PAUSE
+                isPaused = true;
+                stopTimer(); // Halt timer
+                recognition.stop(); // Stop listening - Triggers onend which will save text
+
+                // UI Updates for Paused State
+                pauseBtn.textContent = "Resume";
+                transcriptEl.classList.remove('is-recording');
+                avatarContainer.classList.remove('listening');
+                avatarContainer.classList.add('paused'); // Greyscale effect
+                recordingDot.classList.remove('is-recording');
+                timerDisplay.style.color = 'var(--secondary-600)'; // Orange indicating pause
+            }
+        }
+
+        function stopRecordingLogic() {
+            isRecording = false;
+            // The actual state update happens in recognition.onend
+        }
+
+
+        // Event Listeners for Controls
+        $('recordBtn').onclick = startRecording;
+        $('pauseBtn').onclick = togglePause;
+        $('stopBtn').onclick = () => {
+            if (recognition) recognition.abort(); // Force stop. This triggers onend.
+            stopRecordingLogic();
+        };
+
+        // MODIFIED: Handle Skip/Next functionality
+        $('nextBtn').onclick = () => {
+            // Check if user skipped (i.e., no response recorded for current question)
+            if (!responses[current] || responses[current].answer.trim() === 'No answer recorded.' || responses[current].answer.trim() === 'Skipped by user.') {
+                // Manually log a skipped response
+                responses[current] = {
+                    answer: "Skipped by user.",
+                    time: 0,
+                    wpm: 0,
+                    fillerWords: 0
+                };
+            }
+
+            processingOverlay.style.display = 'flex';
+            setTimeout(() => {
+                processingOverlay.style.display = 'none';
+                current++;
+                if (current < QUESTIONS.length) updateQ();
+                else {
+                    $('progressBar').style.width = `100%`;
+                    finishTest();
+                }
+            }, 500);
+        };
+
+        // --- Scoring ---
+        const FILLER_WORDS = /\b(um|uh|ah|like|you know|so|actually|basically|literally|right)\b/gi;
+
+        function countFillerWords(text) {
+            return (text.match(FILLER_WORDS) || []).length;
+        }
+
+        function calculateWPM(text, time) {
+            if (!text || time === 0) return { wpm: 0 };
+            const words = text.split(/\s+/).length;
+            return { wpm: Math.round((words / time) * 60) };
+        }
+
+        // NEW: Define synonym clusters for a more robust score check
+        const SYNONYM_CLUSTERS = {
+            // Structural/Action keywords (A/R in STAR)
+            "solution": ["solution", "result", "outcome", "achieved", "implemented", "resolved"],
+            "impact": ["impact", "result", "outcome", "achieve", "success", "profitability", "metric", "quantify"],
+            "strategy": ["strategy", "approach", "method", "plan", "framework"],
+            "leadership": ["leadership", "led", "managed", "guided", "oversaw"],
+            // Domain/Concept keywords (B.Tech, MBA, etc.)
+            "project": ["project", "assignment", "initiative", "task"],
+            "challenge": ["challenge", "problem", "obstacle", "issue", "difficulty"],
+            "communication": ["communication", "articulate", "convey", "explained", "presented"],
+            "process": ["process", "workflow", "procedure", "system"]
+        };
+
+
+        function scoreAnswer(answer, requiredKeys) {
+            if (answer.trim() === 'No answer recorded.' || answer.trim() === 'Skipped by user.') {
+                return { score: 0, matched: [], wordCount: 0, elaborationPenalty: false };
+            }
+
+            const lower = answer.toLowerCase();
+            const words = answer.split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+
+            let matchedKeys = [];
+            let matchedClusters = 0;
+
+            // Define core structural markers (for structural validation)
+            const ACTION_KEYWORDS = ["solution", "strategy", "implemented", "leadership", "coach", "develop", "adjust", "execution"];
+            const RESULT_KEYWORDS = ["impact", "result", "outcome", "achieve", "success", "profitability", "metric", "quantify"];
+
+
+            // 1. Semantic Cluster Matching
+            requiredKeys.forEach(requiredKey => {
+                const lowerKey = requiredKey.toLowerCase();
+                let isHit = false;
+
+                // Use a defined synonym cluster or the exact keyword itself
+                const cluster = SYNONYM_CLUSTERS[lowerKey] || [lowerKey];
+
+                for (const synonym of cluster) {
+                    if (lower.includes(synonym)) {
+                        isHit = true;
+                        break;
+                    }
+                }
+
+                if (isHit) {
+                    matchedClusters++;
+                    matchedKeys.push(requiredKey); // Store the original required key for highlighting
+                }
+            });
+
+            let semanticScore = (matchedClusters / requiredKeys.length) * 100;
+            let elaborationPenalty = false;
+
+            // 2. Minimum Elaboration Threshold
+            const MIN_WORDS = 50;
+            const ELABORATION_CAP_SCORE = 30;
+            if (wordCount < MIN_WORDS) {
+                // Cap the score if the answer is too brief, even if keywords were hit
+                semanticScore = Math.min(semanticScore, ELABORATION_CAP_SCORE);
+                elaborationPenalty = true;
+            }
+
+            // 3. Structural Validation (Bonus/Penalty) - Simulating STAR structure
+            // Check if matched keywords align with key Action and Result categories
+            let hasAction = requiredKeys.some(key => ACTION_KEYWORDS.includes(key.toLowerCase()) && matchedKeys.includes(key));
+            let hasResult = requiredKeys.some(key => RESULT_KEYWORDS.includes(key.toLowerCase()) && matchedKeys.includes(key));
+
+            // Apply a small bonus for hitting both key structural components
+            if (hasAction && hasResult && semanticScore > 0) {
+                semanticScore = Math.min(100, semanticScore * 1.05); // 5% bonus up to 100
+            }
+
+
+            return {
+                score: Math.round(semanticScore),
+                matched: matchedKeys,
+                wordCount: wordCount,
+                elaborationPenalty: elaborationPenalty
+            };
+        }
+
+        // --- Feedback Generator ---
+        function getSuggestion(item) {
+            const { answer, time, wpm, fillerWords, score, hit, all, elaborationPenalty } = item;
+            let suggestion = [];
+
+            // Global Thresholds (Adjust based on general interview standards)
+            const wpmThreshold = 180;
+            const fillerWordThreshold = 3;
+
+            // 1. Content/Structure Check
+            if (elaborationPenalty) {
+                suggestion.push(`Your answer was too brief. Aim for at least 50 words to fully elaborate on the **Situation, Task, Action, and Result (STAR method)**.`);
+            }
+
+            const hasAction = item.hit.some(key => ["solution", "strategy", "implemented", "leadership"].includes(key.toLowerCase()));
+            const hasResult = item.hit.some(key => ["impact", "result", "outcome", "metric", "quantify"].includes(key.toLowerCase()));
+
+            if (item.all.length > 3 && (!hasAction || !hasResult)) {
+                if (!hasResult) {
+                    suggestion.push("You provided strong action, but remember to **quantify your results and impact** (e.g., 'saved $X' or 'improved efficiency by Y%').");
+                }
+                if (!hasAction) {
+                    suggestion.push("Clearly describe the **specific actions you took** (the 'A' in STAR). Use strong action verbs like 'led', 'designed', or 'implemented'.");
+                }
+            }
+
+
+            // 2. Delivery Check
+            if (item.wpm > wpmThreshold) {
+                suggestion.push(`Your WPM of ${item.wpm} is quite high. Try to **slow down and articulate** your points clearly. Fast speaking can sound rushed.`);
+            } else if (item.wpm < 100 && item.time > 15) {
+                suggestion.push(`Your speaking pace is quite slow. Aim for a pace between 130-160 WPM to maintain interviewer engagement.`);
+            }
+            if (item.fillerWords > fillerWordThreshold) {
+                suggestion.push(`You used ${item.fillerWords} filler words. Practice pausing instead of saying 'um' or 'like' to sound more confident and prepared.`);
+            }
+
+            // 3. Domain/Experience Check (for added context)
+            if (user.domain.includes("Tech") && !item.hit.includes("architecture") && item.score > 50 && user.experience === "5+ years") {
+                suggestion.push("For senior technical roles, ensure you mention **architectural or system-level decisions** when discussing projects.");
+            } else if (user.domain.includes("MBA") && !item.hit.includes("strategy") && item.score > 50) {
+                suggestion.push("For business questions, frame your answers around **business strategy, ROI, or market impact**.");
+            }
+
+            // Final fallback
+            if (suggestion.length === 0) {
+                suggestion.push("Excellent work! Your answer was clear, well-paced, and hit all the key concepts. Keep it up!");
+            }
+
+            return suggestion.join('<br>');
+        }
+
+        // --- Finish Test ---
+        function finishTest() {
+            // 1. Process all responses
+            let total = 0;
+            let scoredQuestions = 0;
+            breakdown = [];
+
+            responses.forEach((resp, i) => {
+                const q = QUESTIONS[i];
+                const r = scoreAnswer(resp.answer, q.keywords);
+
+                if (resp.answer !== "Skipped by user.") {
+                    total += r.score;
+                    scoredQuestions++;
+                }
+
+                breakdown.push({
+                    question: q.q,
+                    answer: resp.answer,
+                    score: r.score,
+                    wpm: resp.wpm,
+                    fillerWords: resp.fillerWords,
+                    keywordsHit: r.matched,
+                    keywordsAll: q.keywords,
+                    elaborationPenalty: r.elaborationPenalty,
+                    suggestion: getSuggestion({ ...resp, score: r.score, hit: r.matched, all: q.keywords, elaborationPenalty: r.elaborationPenalty })
+                });
+            });
+
+            // 2. Display Results Page
+            renderResults();
+            showPage('resultsPage');
+        }
+
+        // --- Render Results ---
+        function renderResults() {
+            const tbody = $('resultsTable').getElementsByTagName('tbody')[0];
+            const container = $('feedbackContainer');
+            const overallFeedbackBox = $('overallFeedbackBox');
+
+            tbody.innerHTML = '';
+            container.innerHTML = '';
+
+            // 1. Populate Table and Calculate Overall Score
+            let total = 0;
+            let scoredQuestions = 0;
+
+            breakdown.forEach((item, i) => {
+                const q = QUESTIONS[i];
+                const r = scoreAnswer(item.answer, q.keywords);
+
+                if (item.answer !== "Skipped by user.") {
+                    total += r.score;
+                    scoredQuestions++;
+                }
+
+                let colorClass = r.score > 75 ? '#16a34a' : r.score > 45 ? '#ca8a04' : '#dc2626';
+                if (item.answer === "Skipped by user.") colorClass = 'var(--text-500)';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${q.q}</td>
+                        <td style="color:${colorClass}; font-weight:700;">${item.answer === "Skipped by user." ? 'Skipped' : `${r.score}%`}</td>
+                    </tr>`;
+            });
+
+            const overall = scoredQuestions > 0 ? Math.round(total / scoredQuestions) : 0;
+            $('scoreSummary').textContent = `${overall}%`;
+
+            $('scoreSummary').style.animation = 'none'; // Reset animation
+            void $('scoreSummary').offsetHeight; // Trigger reflow
+            $('scoreSummary').style.animation = 'scorePop 0.8s ease-out 0.2s backwards'; // Reapply animation
+
+
+            // Feedback Text
+            let feedback = "";
+            if (overall > 80) feedback = "🥳 **Outstanding performance!** Your answers were highly structured, detailed, and demonstrated strong professional command. You are well-prepared for your interview.";
+            else if (overall > 50) feedback = "👍 **Good effort.** Your foundation is solid, but there's room for improvement. Focus on strengthening the 'Action' and 'Result' sections of your answers. Review the specific suggestions below.";
+            else feedback = "💡 **Keep practicing.** Your answers were brief or missed key structural components. Re-read the job description and practice using the STAR method for every question.";
+
+            overallFeedbackBox.innerHTML = `<p>${feedback}</p>`;
+
+
+            // 2. Populate Detailed Feedback (Accordion)
+            breakdown.forEach((item, i) => {
+                const missed = item.keywordsAll.filter(k => !item.keywordsHit.includes(k));
+                const answerHTML = highlight(item.answer, item.keywordsHit);
+                let bodyContent = '';
+
+                if (item.answer === "Skipped by user.") {
+                    bodyContent = `<p style="font-style: italic;">The question was skipped. No feedback is available.</p>`;
+                } else {
+                    bodyContent = `
+                        <h4>Your Answer</h4>
+                        <p>${answerHTML}</p>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <p>WPM</p>
+                                <div class="stat-item-value">${item.wpm}</div>
+                            </div>
+                            <div class="stat-item">
+                                <p>Filler Words</p>
+                                <div class="stat-item-value">${item.fillerWords}</div>
+                            </div>
+                        </div>
+                        
+                        <h3>Key Analysis</h3>
+                        <p><strong>Keywords Hit:</strong> ${item.keywordsHit.map(k => `<span class="keyword-highlight">${k}</span>`).join(' ') || 'None'}</p>
+                        <p><strong>Keywords Missed:</strong> ${missed.map(k => `<span class="keyword-missed">${k}</span>`).join(' ') || 'None'}</p>
+
+                        <div class="suggestion-box">
+                            <strong>Coach Suggestion:</strong>
+                            <p>${item.suggestion}</p>
+                        </div>
+                    `;
+                }
+
+
+                const div = document.createElement('div');
+                div.className = 'feedback-item';
+                div.innerHTML = `
+                    <div class="feedback-header">
+                        <span>Q${i + 1}: ${item.question}</span>
+                        <span style="font-weight:700; color:${colorClass};">${item.answer === "Skipped by user." ? 'Skipped' : `${item.score}%`}</span>
+                    </div>
+                    <div class="feedback-body">
+                        ${bodyContent}
+                    </div>
+                `;
+
+                div.querySelector('.feedback-header').onclick = () => div.classList.toggle('open');
+                container.appendChild(div);
+            });
+        }
+
+        function highlight(text, keys) {
+            if (!text || text === "Skipped by user." || text === "No answer recorded.") return text;
+            let html = text;
+            keys.forEach(k => {
+                const reg = new RegExp(`(${k})`, 'gi');
+                html = html.replace(reg, '<span class="keyword-highlight">$1</span>');
+            });
+            return html;
+        }
+
+        // PDF Generation
+        $('downloadBtn').onclick = () => {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                let y = 20;
+                const margin = 20;
+                const lineHeight = 5;
+
+                // Helper to handle text wrapping and adding text
+                const addText = (text, x, y, options = {}) => {
+                    doc.setFont(options.font || 'helvetica', options.style || 'normal');
+                    doc.setFontSize(options.size || 10);
+                    const splitText = doc.splitTextToSize(text, 170);
+                    doc.text(splitText, x, y);
+                    return y + (splitText.length * lineHeight);
+                };
+
+                // --- 1. Header ---
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.text("AI Interview Report", 105, y, { align: 'center' });
+                y += 15;
+
+                // --- 2. Summary Box ---
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                y = addText(`Name: ${user.name}`, margin, y);
+                y = addText(`Experience: ${user.experience}`, margin, y);
+                y = addText(`Domain: ${user.domain}`, margin, y);
+                y = addText(`Overall Score: ${$('scoreSummary').textContent}`, margin, y);
+                y += 10;
+
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                y = addText(`Overall Feedback:`, margin, y);
+                doc.setFont('helvetica', 'normal');
+                // Clean the feedback text
+                const overallFeedback = $('overallFeedbackBox').textContent.replace(/🥳|👍|💡|\*\*/g, '').trim();
+                y = addText(overallFeedback, margin, y);
+                y += 15;
+
+
+                // --- 3. Question Analysis ---
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                y = addText(`Question Analysis`, margin, y);
+                y += 7;
+
+                breakdown.forEach((item, i) => {
+                    if (y > 270) { doc.addPage(); y = 20; }
+
+                    // Question Title
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    y = addText(`Q${i + 1}: ${item.question} (${item.answer === "Skipped by user." ? 'Skipped' : `${item.score}%`})`, margin, y);
+                    y += 5;
+
+                    // Score & Stats
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    if (item.answer !== "Skipped by user.") {
+                        y = addText(`Score: ${item.score}% | WPM: ${item.wpm} | Filler Words: ${item.fillerWords}`, margin, y);
+                    } else {
+                        y = addText(`Score: Skipped | WPM: 0 | Filler Words: 0`, margin, y);
+                    }
+                    y += 5;
+
+                    // Answer
+                    doc.setFont('helvetica', 'bold');
+                    y = addText(`Answer:`, margin, y);
+                    doc.setFont('helvetica', 'normal');
+                    const answerText = item.answer === "Skipped by user." ? "Answer: Skipped by user." : item.answer;
+                    y = addText(answerText, margin, y);
+                    y += lineHeight * 0.5;
+
+                    // Keywords
+                    const missed = item.keywordsAll.filter(k => !item.keywordsHit.includes(k));
+                    y = addText(`Keywords Hit:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                    y = addText(item.keywordsHit.join(', ') || 'None', margin + 5, y);
+                    
+                    y = addText(`Keywords to Include:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                    y = addText(missed.join(', ') || 'None', margin + 5, y);
+                    y += lineHeight * 0.5;
+                    
+                    // Clean the suggestion text for PDF
+                    const suggestionClean = item.suggestion.replace(/\*\*/g, '').replace(/<[^>]*>?/gm, '');
+
+                    y = addText(`Suggestion:`, margin, y, { font: 'helvetica', style: 'bold', size: 10 });
+                    y = addText(suggestionClean, margin + 5, y);
+                    
+                    y += lineHeight * 1.5; 
+                });
+
+                // --- 5. Save the PDF ---
+                doc.save(`Insmot_AI_Report_${user.name.replace(' ', '_') || 'Guest'}.pdf`);
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+            }
+        };
+        
+        // ---------------------------------------------
+        // Reset Button
+        // ---------------------------------------------
+        $('restartBtn').onclick = () => {
+            // Clear state
+            current = 0;
+            responses = [];
+            breakdown = [];
+            // user object is kept by default, but we could clear it
+            // user = {}; 
+            // localStorage.removeItem('insmotUser');
+            
+            // Reset inputs on form page (in case user isn't cleared)
+            $('jobDescInput').value = '';
+            
+            // Navigate back to form page
+            showPage('formPage');
+        }
+        
+        // --- NEW: Initial Page Load ---
+        window.onload = () => {
+            loadUserFromLocal(); // Load user details from local storage on load
+        };
+    </script>
+
+</body>
+
+</html>
